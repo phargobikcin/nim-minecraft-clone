@@ -1,5 +1,8 @@
+import os
+import ../simpleutils
+
 # Include the header
-{.compile: "stb_image/read.c".}
+{.compile: "read.c".}
 
 proc stbi_load(filename: cstring; x, y, channels_in_file: ptr cint; desired_channels: cint): ptr cuchar
   {.importc: "stbi_load"}
@@ -19,11 +22,18 @@ type
     data*: seq[uint8]
 
 
+proc `$`*(self: STBImage): string =
+  result = f"STBImage(width={self.width}, height={self.height}, channels={self.channels}"
+
+
 proc loadImage*(path: string, desiredChannels: int, flip=false): STBImage =
   var
     width: cint
     height: cint
     channels: cint
+
+  if not os.fileExists(path):
+    raise newException(IOError, "file doesnt exist")
 
   if flip:
     stbi_set_flip_vertically_on_load(flip.ord.cint)

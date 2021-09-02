@@ -1,24 +1,30 @@
 include thin/simpleapp
 
-from ./numbers import nil
+import tables
+import block_type
+import texture_manager
 
 type
   MinecraftClone = ref object of App
     shaderMatrixLocation: int
+    shaderSamplerLocation: int
     x: float32
-
+    textureManager: TextureManager
+    blocks: Table[string, BlockType]
 
 let vertGLSL = """
 #version 330
 
 layout(location = 0) in vec3 vertex_position;
+layout(location = 1) in vec3 tex_coords; // texture coordinates attribute
 
 out vec3 local_position;
-uniform mat4 matrix; // create matrix uniform variable
+out vec3 interpolated_tex_coords; // interpolated texture coordinates
+
+uniform mat4 matrix;
 
 void main(void) {
-	local_position = vertex_position;
-        // multiply matrix by vertex_position vector
+	interpolated_tex_coords = tex_coords;
 	gl_Position = matrix * vec4(vertex_position, 1.0);
 }"""
 
@@ -27,10 +33,12 @@ let fragGLSL = """
 
 out vec4 fragment_colour;
 
-in vec3 local_position;
+uniform sampler2DArray texture_array_sampler; // create our texture array sampler uniform
+
+in vec3 interpolated_tex_coords; // interpolated texture coordinates
 
 void main(void) {
-	fragment_colour = vec4(local_position / 2.0 + 0.5, 1.0);
+	fragment_colour = texture(texture_array_sampler, interpolated_tex_coords); // sample our texture array with the interpolated texture coordinates
 }"""
 
 
@@ -38,18 +46,43 @@ method update(self: MinecraftClone) =
   self.x += self.deltaTime
 
 
+proc createBlocks(self: MinecraftClone) =
+  # create our texture manager (256 textures that are 16 x 16 pixels each)
+  self.textureManager = newTextureManager(16, 16, 256)
+
+  # create each one of our blocks with the texture manager and a list of textures per face
+  let blocks = @[newBlockType(self.textureManager, "cobblestone", {"all": "cobblestone"}.toTable),
+                 newBlockType(self.textureManager, "grass", {"top": "grass", "bottom": "dirt", "sides": "grass_side"}.toTable),
+                 newBlockType(self.textureManager, "dirt", {"all": "dirt"}.toTable),
+                 newBlockType(self.textureManager, "stone", {"all": "sand"}.toTable),
+                 newBlockType(self.textureManager, "planks", {"all": "planks"}.toTable),
+                 newBlockType(self.textureManager, "log", {"top": "log_top", "bottom": "log_top", "sides": "log_side"}.toTable)]
+
+  # generate mipmaps for our texture manager's texture
+  self.textureManager.generateMipmaps()
+
+  # store in table for future use
+  for b in blocks:
+    self.blocks[b.name] = b
+
+
 method init(self: MinecraftClone) =
+  self.createBlocks()
+
+  # this is block to test
+  const blockNameTest = "log"
+
   # enable depth testing so faces are drawn in the right order
   glEnable(GL_DEPTH_TEST)
 
-  # create buffers
-  let vbo = newVertexBuffer(numbers.vertexPositions)
-  let ibo = newIndexBuffer(numbers.indices)
+  # get block we want to renderer
+  let testBlock = self.blocks[blockNameTest]
 
   # create vertex buffer object
   let vao = newVertexArrayObject()
-  vao.addBuffer(vbo, EGL_FLOAT, 3)
-  vao.attach(ibo)
+  vao.addBuffer(newVertexBuffer(testBlock.vertexPositions), EGL_FLOAT, 3)
+  vao.addBuffer(newVertexBuffer(testBlock.texCords), EGL_FLOAT, 3)
+  vao.attach(newIndexBuffer(testBlock.indices))
 
   # store vao in application (so can have more than one vao)
   self.add("quad", vao)
@@ -64,6 +97,7 @@ method init(self: MinecraftClone) =
   shader.use()
 
   self.shaderMatrixLocation = shader.findUniform("matrix")
+  self.shaderSamplerLocation = shader.findUniform("texture_array_sampler")
 
 method clear*(self: MinecraftClone) =
   # clear colour / depth
@@ -89,6 +123,9 @@ method draw(self: MinecraftClone) =
 
   let mvpMatrix = pMatrix * mvMatrix
   self.program.setUniform(self.shaderMatrixLocation, mvpMatrix)
+
+  self.textureManager.doBind()
+  self.program.setUniform(self.shaderSamplerLocation, 0)
 
   glClearColor(0.0, 0.0, 0.0, 1.0)
   self.clear()

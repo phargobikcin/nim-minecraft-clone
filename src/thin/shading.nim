@@ -174,9 +174,11 @@ proc findUniform*(self: ShaderProgram, name: string): int =
 proc setUniform*(self: ShaderProgram, location: int, v: bool) =
   glUniform1i(location.cint, ord(v).cint)
 
+proc setUniform*(self: ShaderProgram, location: int, i: int) =
+  glUniform1i(location.cint, i.cint)
 
 proc setUniform*(self: ShaderProgram, location: int, m: float) =
-  glUniform1f(location.cint, GLfloat(m))
+  glUniform1f(location.cint, m.GLfloat)
 
 
 proc setUniform*(self: ShaderProgram, location: int, v: Vec3) =
