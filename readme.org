@@ -1,0 +1,19 @@
+* nim-minecraft-clone
+  Source code for each episode of Obiwac's Minecraft clone in Python YouTube tutorial series, but
+  in Nim.
+
+  Thanks to Obiwac for producing this amazing tutorial [[https://www.youtube.com/watch?v=TtkTkfwwefA&list=PL6_bLxRDFzoKjaa3qCGkwR5L_ouSreaVP][series]], and for releasing his [[https://github.com/obiwac/python-minecraft-clone][code]].
+
+** info
+   Since I need some library code to replace pyglet, and I have started my own "Thin" library.
+   This does way more than we need here, but basically includes a thin wrapper to SDL2, OpenGL and
+   some vector/matrix objects.  It will likely evolve on its own independent of this repo, but too
+   ease development it is included here in a separate directory within src/.
+
+   Each episode has its own directory within src/.  I am hopeful to keep the code looking somewhat
+   similar to the python code... but in all likelihood it won't. ;)
+
+** to build
+   ~$ nimble build~
+
+

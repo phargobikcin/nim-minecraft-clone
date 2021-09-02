@@ -1,0 +1,9 @@
+# log files
+*.log
+
+# binary files
+*.bin
+
+nimcache/
+nimblecache/
+htmldocs/
