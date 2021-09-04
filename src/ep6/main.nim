@@ -1,18 +1,19 @@
-include thin/simpleapp
+import tables
+
+from sdl2_nim/sdl import Event, Keysym
 
 import thin/gamemaths
+include thin/simpleapp
 
-import tables
-import block_type
-import texture_manager
+import block_type, texture_manager, camera
 
 type
   MinecraftClone = ref object of App
-    shaderMatrixLocation: int
     shaderSamplerLocation: int
-    x: float32
     textureManager: TextureManager
     blocks: Table[string, BlockType]
+    mouseCaptured: bool
+    camera: Camera
 
 let vertGLSL = """
 #version 330
@@ -44,9 +45,7 @@ void main(void) {
 }"""
 
 
-method update(self: MinecraftClone) =
-  self.x += self.deltaTime
-
+###############################################################################
 
 proc createBlocks(self: MinecraftClone) =
   # create our texture manager (256 textures that are 16 x 16 pixels each)
@@ -98,7 +97,6 @@ method init(self: MinecraftClone) =
   self.add("shader", shader)
   shader.use()
 
-  self.shaderMatrixLocation = shader.findUniform("matrix")
   self.shaderSamplerLocation = shader.findUniform("texture_array_sampler")
 
   # it is zero by default
@@ -107,37 +105,89 @@ method init(self: MinecraftClone) =
   # leave textures bound
   self.textureManager.doBind()
 
+  # create the camera
+  self.camera = newCamera(shader, self.ctx.width, self.ctx.height)
 
-method clear*(self: MinecraftClone) =
+###############################################################################
+
+method onResized(self: MinecraftClone, width, height: int) =
+  self.camera.updatePMatrix(width, height)
+
+proc onMouseMotion(self: MinecraftClone, x, y: int) =
+  if self.mouseCaptured:
+    let sensitivity = 0.004f
+
+    # this needs to be negative since turning to the left decreases delta_x while increasing the x
+    # rotation angle
+    self.camera.rotation.x -= x.float32 * sensitivity
+    self.camera.rotation.y += y.float32 * sensitivity
+
+    # clamp the camera's up / down rotation so that you can't snap your neck
+    self.camera.rotation.y = max(-math.TAU / 4, min(math.TAU / 4, self.camera.rotation.y))
+    echo self.camera.rotation
+
+proc onKey(self: MinecraftClone, pressed: bool, keysym: Keysym) =
+  if not self.mouseCaptured:
+    return
+
+  let rel: int32 = if pressed: 1 else: -1
+
+  case keysym.sym:
+    of sdl.K_d:
+      self.camera.movementInput.x += rel
+    of sdl.K_a:
+      self.camera.movementInput.x -= rel
+    of sdl.K_w:
+      self.camera.movementInput.z += rel
+    of sdl.K_s:
+      self.camera.movementInput.z -= rel
+    of sdl.K_SPACE:
+      self.camera.movementInput.y += rel
+    of sdl.K_LSHIFT:
+      self.camera.movementInput.y -= rel
+    else:
+      discard
+
+method handleEvent(self: MinecraftClone, event: Event) =
+  if event.kind == sdl.MOUSEBUTTONDOWN and event.button.button == sdl.BUTTON_LEFT:
+    self.mouseCaptured = not self.mouseCaptured
+    discard sdl.setRelativeMouseMode(self.mouseCaptured)
+
+  elif event.kind == sdl.MOUSEMOTION:
+    self.onMouseMotion(event.motion.xrel, event.motion.yrel)
+
+  elif event.kind == sdl.KEYDOWN and event.key.repeat == 0:
+    self.onKey(true, event.key.keysym)
+
+  elif event.kind == sdl.KEYUP and event.key.repeat == 0:
+    self.onKey(false, event.key.keysym)
+
+
+###############################################################################
+
+method update(self: MinecraftClone, deltaTime: float) =
+  if not self.mouseCaptured:
+    self.camera.movementInput = ivec3()
+
+  self.camera.updatePosition(deltaTime)
+
+
+###############################################################################
+
+method clear(self: MinecraftClone) =
   # clear colour / depth
   gl.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
-
 method draw(self: MinecraftClone) =
-  # create projection matrix
-  let pMatrix = gamemaths.perspective(90f,
-                                      (self.ctx.width / self.ctx.height).float32,
-                                      0.1,
-                                      500)
-
-  # create model view matrix
-  var mvMatrix = gamemaths.translate(vec3(0, 0, -3))
-
-  # funky rotating, I don't pretend to understand
-  proc rotate2D(x, y: float32) =
-    mvMatrix = mvMatrix * gamemaths.rotate(x, vec3(0, 1.0, 0))
-    mvMatrix = mvMatrix * gamemaths.rotate(-y, vec3(math.cos(x), 0, math.sin(x)))
-
-  rotate2D(self.x, math.sin(self.x / 3 * 2) / 2)
-
-  let mvpMatrix = pMatrix * mvMatrix
-  self.program.setUniform(self.shaderMatrixLocation, mvpMatrix)
+  self.camera.updateMatrices()
 
   glClearColor(0.0, 0.0, 0.0, 1.0)
   self.clear()
   self.vao.draw()
 
 
+###############################################################################
+
 when isMainModule:
   start(MinecraftClone, system.currentSourcePath,
-        w=800, h=600, title="Minecraft clone", doResize=true, vsync=false, doFullscreen=false)
+        w=800, h=600, title="Minecraft clone", doResize=true, vsync=true, doFullscreen=false)
