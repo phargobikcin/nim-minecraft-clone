@@ -19,16 +19,19 @@ let vertGLSL = """
 #version 330
 
 layout(location = 0) in vec3 vertex_position;
-layout(location = 1) in vec3 tex_coords; // texture coordinates attribute
+layout(location = 1) in vec3 tex_coords;
+layout(location = 2) in float shading_value;
 
 out vec3 local_position;
-out vec3 interpolated_tex_coords; // interpolated texture coordinates
+out vec3 interpolated_tex_coords;
+out float interpolated_shading_value;
 
 uniform mat4 matrix;
 
 void main(void) {
-	interpolated_tex_coords = tex_coords;
-	gl_Position = matrix * vec4(vertex_position, 1.0);
+       interpolated_tex_coords = tex_coords;
+       interpolated_shading_value = shading_value;
+       gl_Position = matrix * vec4(vertex_position, 1.0);
 }"""
 
 let fragGLSL = """
@@ -36,12 +39,13 @@ let fragGLSL = """
 
 out vec4 fragment_colour;
 
-uniform sampler2DArray texture_array_sampler; // create our texture array sampler uniform
+uniform sampler2DArray texture_array_sampler;
 
-in vec3 interpolated_tex_coords; // interpolated texture coordinates
+in vec3 interpolated_tex_coords;
+in float interpolated_shading_value;
 
 void main(void) {
-	fragment_colour = texture(texture_array_sampler, interpolated_tex_coords); // sample our texture array with the interpolated texture coordinates
+      fragment_colour = texture(texture_array_sampler, interpolated_tex_coords) * interpolated_shading_value;
 }"""
 
 
@@ -71,7 +75,7 @@ method init(self: MinecraftClone) =
   self.createBlocks()
 
   # this is block to test
-  const blockNameTest = "grass"
+  const blockNameTest = "cobblestone"
 
   # enable depth testing so faces are drawn in the right order
   glEnable(GL_DEPTH_TEST)
@@ -83,6 +87,7 @@ method init(self: MinecraftClone) =
   let vao = newVertexArrayObject()
   vao.addBuffer(newVertexBuffer(testBlock.vertexPositions), EGL_FLOAT, 3)
   vao.addBuffer(newVertexBuffer(testBlock.texCords), EGL_FLOAT, 3)
+  vao.addBuffer(newVertexBuffer(testBlock.shadingValues), EGL_FLOAT, 1)
   vao.attach(newIndexBuffer(testBlock.indices))
 
   # store vao in application (so can have more than one vao)

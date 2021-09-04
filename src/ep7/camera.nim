@@ -17,6 +17,12 @@ type
     position: Vec3
     rotation*: Vec2
 
+###############################################################################
+# fwd
+proc updatePMatrix*(self: Camera, width, height: int)
+
+###############################################################################
+
 proc newCamera*(p: ShaderProgram, w, h: int): Camera =
   result = Camera(program: p, width: w, height: h)
 
@@ -26,11 +32,11 @@ proc newCamera*(p: ShaderProgram, w, h: int): Camera =
   # what we consider "forwards" is the negative z axis
   result.position.x = math.TAU / 4
 
-  # create projection matrix
-  result.pMatrix = gamemaths.perspective(90f, (w / h).float32, 0.1, 500)
-
   result.position = vec3(0, 0, -3)
   result.rotation = vec2(math.TAU / 4.0, 0)
+  result.updatePMatrix(w, h)
+
+###############################################################################
 
 proc updatePMatrix*(self: Camera, width, height: int) =
   self.width = width
@@ -56,7 +62,7 @@ proc updatePosition*(self: Camera, deltaTime: float) =
 
   self.position.x += math.cos(angle) * multiplier
   self.position.z += math.sin(angle) * multiplier
-  echo self.position
+  # echo self.position
 
 proc updateMatrices*(self: Camera) =
   # create model view matrix
@@ -69,20 +75,18 @@ proc updateMatrices*(self: Camera) =
   proc rotate2D(x, y: float32) =
     # this rotates around y axis
     vMatrix = vMatrix * gamemaths.rotate(x, vec3(0, 1.0, 0))
+
     # this rotates around an axis based of x
     let axis = vec3(math.cos(x), 0, math.sin(x))
-    echo f"axis {axis}"
+    # echo f"axis {axis}"
     vMatrix = vMatrix * gamemaths.rotate(-y, axis)
-
 
   # this needs to come first for a first person view and we need to play around with the x rotation
   # angle a bit since our 0 angle is on the positive x axis while the matrix library's 0 angle is
   # on the negative z axis (because of normalized device coordinates)
   rotate2D(-(self.rotation[0] - math.TAU / 4), self.rotation.y)
 
-  # this needs to be negative because if you remember from episode 4, we're technically moving the
-  # scene around the camera and not the camera around the scene (except for the z axis because of
-  # normalized device coordinates)
+  # this needs to be negative, since in reality we are moving the world - not the camera
   vMatrix = vMatrix * gamemaths.translate(vec3(-p.x, -p.y, p.z))
 
   # no model transformations

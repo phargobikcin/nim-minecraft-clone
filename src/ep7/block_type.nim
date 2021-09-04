@@ -9,6 +9,7 @@ type
     vertexPositions*: seq[float32]
     texCords*: seq[float32]
     indices*: seq[uint32]
+    shadingValues*: seq[float32]
 
 
 proc newBlockType*(manager: TextureManager,
@@ -20,7 +21,8 @@ proc newBlockType*(manager: TextureManager,
   var blockType = BlockType(name: name,
                             vertexPositions: numbers.vertexPositions,
                             texCords: numbers.texCords,
-                            indices: numbers.indices)
+                            indices: numbers.indices,
+                            shadingValues: numbers.shadingValues)
 
   # note, these are copies.  This is handy for texCords, since we need to modify our texture
   # coordinates in a different way for each block type (to have different textures per block)
