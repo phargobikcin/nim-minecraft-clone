@@ -1,12 +1,12 @@
-NIMC_DEBUG = nim cpp --styleCheck:hint --hint\[Processing\]\:on --excessiveStackTrace\:on  --lineTrace:on --opt:none
-NIMC_DEBUG_ORC = $(NIMC_DEBUG) --gc:orc
+NIMC_DEBUG = nim cpp --styleCheck:hint --hint\[Processing\]\:on --excessiveStackTrace\:on  --lineTrace:on --opt:none --gc:orc
+NIMC_RELEASE = nim cpp -d:release --styleCheck:hint --gc:orc
 
 BINS = main.bin
 
 all: $(BINS)
 
 %.bin: %.nim
-	$(NIMC_DEBUG_ORC) $(NIM_PATHS) -o=$@ $<
+	$(NIMC_RELEASE) $(NIM_PATHS) -o=$@ $<
 
 clean:
 	rm -f *.bin *.log

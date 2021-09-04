@@ -9,11 +9,13 @@ import block_type, texture_manager, camera
 
 type
   MinecraftClone = ref object of App
-    shaderSamplerLocation: int
     textureManager: TextureManager
     blocks: Table[string, BlockType]
     mouseCaptured: bool
     camera: Camera
+
+    modelLocation: int
+    shaderSamplerLocation: int
 
 let vertGLSL = """
 #version 330
@@ -26,12 +28,14 @@ out vec3 local_position;
 out vec3 interpolated_tex_coords;
 out float interpolated_shading_value;
 
-uniform mat4 matrix;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 perspective;
 
 void main(void) {
        interpolated_tex_coords = tex_coords;
        interpolated_shading_value = shading_value;
-       gl_Position = matrix * vec4(vertex_position, 1.0);
+       gl_Position = perspective * view * model * vec4(vertex_position, 1.0);
 }"""
 
 let fragGLSL = """
@@ -75,7 +79,7 @@ method init(self: MinecraftClone) =
   self.createBlocks()
 
   # this is block to test
-  const blockNameTest = "cobblestone"
+  const blockNameTest = "grass"
 
   # enable depth testing so faces are drawn in the right order
   glEnable(GL_DEPTH_TEST)
@@ -103,6 +107,7 @@ method init(self: MinecraftClone) =
   shader.use()
 
   self.shaderSamplerLocation = shader.findUniform("texture_array_sampler")
+  self.modelLocation = shader.findUniform("model")
 
   # it is zero by default
   # self.program.setUniform(self.shaderSamplerLocation, 0)
@@ -113,10 +118,11 @@ method init(self: MinecraftClone) =
   # create the camera
   self.camera = newCamera(shader, self.ctx.width, self.ctx.height)
 
+
 ###############################################################################
 
 method onResized(self: MinecraftClone, width, height: int) =
-  self.camera.updatePMatrix(width, height)
+  self.camera.updatePerspective(width, height)
 
 proc onMouseMotion(self: MinecraftClone, x, y: int) =
   if self.mouseCaptured:
@@ -183,16 +189,32 @@ method clear(self: MinecraftClone) =
   # clear colour / depth
   gl.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
-method draw(self: MinecraftClone) =
-  self.camera.updateMatrices()
 
+method draw(self: MinecraftClone) =
   glClearColor(0.0, 0.0, 0.0, 1.0)
   self.clear()
-  self.vao.draw()
 
+  self.camera.updateView()
+
+  # identity
+  for x in -32..32:
+    for z in -32..32:
+      let pos = vec3(x.float32, 0.float32, z.float32)
+      let mMatrix = gamemaths.translate(pos)
+      self.program.setUniform(self.modelLocation, mMatrix)
+      self.vao.draw()
+
+  for x in -16..16:
+    for y in 1..17:
+      for z in -16..16:
+        let pos = vec3(x.float32, y.float32, z.float32)
+        let mMatrix = gamemaths.translate(pos)
+        self.program.setUniform(self.modelLocation, mMatrix)
+        self.vao.draw()
 
 ###############################################################################
 
 when isMainModule:
   start(MinecraftClone, system.currentSourcePath,
-        w=800, h=600, title="Minecraft clone", doResize=true, vsync=true, doFullscreen=false)
+        w=800, h=600, title="Minecraft clone", doResize=true, vsync=false, doFullscreen=false)
+
