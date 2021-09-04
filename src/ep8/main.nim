@@ -5,7 +5,7 @@ from sdl2_nim/sdl import Event, Keysym
 import thin/gamemaths
 include thin/simpleapp
 
-import block_type, texture_manager, camera
+import block_type, texture_manager, camera, chunk
 
 type
   MinecraftClone = ref object of App
@@ -14,8 +14,9 @@ type
     mouseCaptured: bool
     camera: Camera
 
-    modelLocation: int
     shaderSamplerLocation: int
+    testChunk: Chunk
+
 
 let vertGLSL = """
 #version 330
@@ -28,14 +29,13 @@ out vec3 local_position;
 out vec3 interpolated_tex_coords;
 out float interpolated_shading_value;
 
-uniform mat4 model;
 uniform mat4 view;
 uniform mat4 perspective;
 
 void main(void) {
        interpolated_tex_coords = tex_coords;
        interpolated_shading_value = shading_value;
-       gl_Position = perspective * view * model * vec4(vertex_position, 1.0);
+       gl_Position = perspective * view * vec4(vertex_position, 1.0);
 }"""
 
 let fragGLSL = """
@@ -51,7 +51,6 @@ in float interpolated_shading_value;
 void main(void) {
       fragment_colour = texture(texture_array_sampler, interpolated_tex_coords) * interpolated_shading_value;
 }"""
-
 
 ###############################################################################
 
@@ -78,28 +77,13 @@ proc createBlocks(self: MinecraftClone) =
 method init(self: MinecraftClone) =
   self.createBlocks()
 
-  # this is block to test
-  const blockNameTest = "grass"
-
   # enable depth testing so faces are drawn in the right order
   glEnable(GL_DEPTH_TEST)
 
-  # get block we want to renderer
-  let testBlock = self.blocks[blockNameTest]
-
-  # create vertex buffer object
-  let vao = newVertexArrayObject()
-  vao.addBuffer(newVertexBuffer(testBlock.vertexPositions), EGL_FLOAT, 3)
-  vao.addBuffer(newVertexBuffer(testBlock.texCords), EGL_FLOAT, 3)
-  vao.addBuffer(newVertexBuffer(testBlock.shadingValues), EGL_FLOAT, 1)
-  vao.attach(newIndexBuffer(testBlock.indices))
-
-  # store vao in application (so can have more than one vao)
-  self.add("quad", vao)
-  vao.unbind()
-
-  # leave vao bound... not best practice
-  vao.doBind()
+  self.testChunk = newChunk(ivec3(0, 0, 0))
+  echo "Here0"
+  self.testChunk.updateMesh(self.blocks["cobblestone"])
+  echo "Here1"
 
   # create shader
   let shader = shading.program(vertGLSL, fragGLSL)
@@ -107,7 +91,6 @@ method init(self: MinecraftClone) =
   shader.use()
 
   self.shaderSamplerLocation = shader.findUniform("texture_array_sampler")
-  self.modelLocation = shader.findUniform("model")
 
   # it is zero by default
   # self.program.setUniform(self.shaderSamplerLocation, 0)
@@ -196,21 +179,24 @@ method draw(self: MinecraftClone) =
 
   self.camera.updateView()
 
-  # identity
-  for x in -32..32:
-    for z in -32..32:
-      let pos = vec3(x.float32, 0.float32, z.float32)
-      let mMatrix = gamemaths.translate(pos)
-      self.program.setUniform(self.modelLocation, mMatrix)
-      self.vao.draw()
+  self.testChunk.draw()
 
-  for x in -16..16:
-    for y in 1..17:
-      for z in -16..16:
-        let pos = vec3(x.float32, y.float32, z.float32)
-        let mMatrix = gamemaths.translate(pos)
-        self.program.setUniform(self.modelLocation, mMatrix)
-        self.vao.draw()
+  # XXX
+  # # identity
+  # for x in -32..32:
+  #   for z in -32..32:
+  #     let pos = vec3(x.float32, 0.float32, z.float32)
+  #     let mMatrix = gamemaths.translate(pos)
+  #     self.program.setUniform(self.modelLocation, mMatrix)
+  #     self.vao.draw()
+
+  # for x in -16..16:
+  #   for y in 1..17:
+  #     for z in -16..16:
+  #       let pos = vec3(x.float32, y.float32, z.float32)
+  #       let mMatrix = gamemaths.translate(pos)
+  #       self.program.setUniform(self.modelLocation, mMatrix)
+  #       self.vao.draw()
 
 ###############################################################################
 
