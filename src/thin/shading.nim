@@ -141,7 +141,6 @@ proc dumpInfo*(self: ShaderProgram) =
 
   # maximum name length
   const sz: GLsizei = 64
-  var buf = newSeq[char](sz + 1)
 
   # name length
   var length: GLsizei
@@ -153,6 +152,7 @@ proc dumpInfo*(self: ShaderProgram) =
   l_info(fmt"Active Attributes: {count}")
 
   for i in 0..<count:
+    var buf = newSeq[char](sz + 1)
     glGetActiveAttrib(self.programId, GLuint i, sz, addr length, addr size, addr varType, addr buf[0])
     let varStr: string = varTypeToString(varType)
     l_info(fmt"Attribute #{i} Type: {varStr} Name: {buf.join()}")
@@ -161,6 +161,7 @@ proc dumpInfo*(self: ShaderProgram) =
   glGetProgramiv(self.programId, GL_ACTIVE_UNIFORMS, addr count)
   l_info(fmt"Active Uniforms: {count}")
   for i in 0..<count:
+    var buf = newSeq[char](sz + 1)
     glGetActiveUniform(self.programId, GLuint i, sz, addr length, addr size, addr varType, addr buf[0])
     let varStr: string = varTypeToString(varType)
     l_info(fmt"Uniform #{i} Type: {varStr} Name: {buf.join()}")
