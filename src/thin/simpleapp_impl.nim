@@ -21,7 +21,7 @@ type
     programRegistry: Table[string, shading.ShaderProgram]
 
     # per-frame time logic
-    deltaTime*: float
+    deltaTime: float
     lastFrameTime: float
 
 ###############################################################################
@@ -30,7 +30,13 @@ type
 method init*(self: App) {.base.} =
   discard
 
-method update*(self: App) {.base.} =
+method onResized*(self: App, width, height: int) {.base.} =
+  discard
+
+method handleEvent*(self: App, e: Event) {.base.} =
+  discard
+
+method update*(self: App, deltaTime: float) {.base.} =
   discard
 
 method clear*(self: App) {.base.} =
@@ -39,9 +45,6 @@ method clear*(self: App) {.base.} =
 
 method draw*(self: App) {.base.} =
   self.clear()
-
-method handleEvent*(self: App, e: Event) {.base.} =
-  discard
 
 ###############################################################################
 # helpers
@@ -143,7 +146,11 @@ template start*(typ: typed,
       for e in ctx.getEvents():
         app.handleEvent(e)
 
-      app.update()
+      if ctx.windowResized:
+        app.onResized(ctx.width, ctx.height)
+        ctx.windowResized = false
+
+      app.update(app.deltaTime)
       app.draw()
 
       ctx.update()

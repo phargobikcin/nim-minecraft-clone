@@ -208,9 +208,6 @@ proc checkBasicEvents(self: DisplayCtx, e: sdl.Event): bool =
     return true
 
   elif e.kind == sdl.KEYDOWN:
-    # Show what key was pressed
-    l_verbose("Pressed: ", $e.key.keysym.sym)
-
     case e.key.keysym.sym:
       of sdl.K_ESCAPE:
         self.quitRequested = true
