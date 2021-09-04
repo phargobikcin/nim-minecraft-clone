@@ -44,8 +44,8 @@ void main(void) {
 }"""
 
 
-method update(self: MinecraftClone) =
-  self.x += self.deltaTime
+method update(self: MinecraftClone, deltaTime: float) =
+  self.x += deltaTime
 
 
 proc createBlocks(self: MinecraftClone) =
