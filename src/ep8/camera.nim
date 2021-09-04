@@ -85,7 +85,7 @@ proc updateView*(self: Camera) =
 
     # this rotates around an axis based of x.  The y axis is only for the view, and it is the m
     let axis = vec3(math.cos(x), 0, math.sin(x))
-    echo f"x: {x}, y {y}, axis {axis}"
+    #echo f"x: {x}, y {y}, axis {axis}"
     vMatrix = vMatrix * gamemaths.rotate(-y, axis)
 
   # this needs to come first for a first person view and we need to play around with the x rotation

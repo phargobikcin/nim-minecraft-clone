@@ -1,22 +1,24 @@
 
-#import math
+import sequtils
 
 import nimgl/opengl as gl
 
 import thin/[gamemaths, loaded, simpleutils]
 import thin/logsetup as logging
-import block_type
+import block_type, block_manager
 
 const
-  CHUNK_WIDTH = 16
-  CHUNK_HEIGHT = 16
-  CHUNK_LENGTH = 16
+  CHUNK_WIDTH* = 16
+  CHUNK_HEIGHT* = 16
+  CHUNK_LENGTH* = 16
 
 
 type
   Chunk* = ref object
-    chunkPosition: int
+    chunkPosition*: IVec3
     position: IVec3
+
+    blocks*: seq[seq[seq[int]]]
 
     hasMesh: bool
 
@@ -30,9 +32,15 @@ type
     vao: VertexArrayObject
 
 proc newChunk*(pos: IVec3): Chunk =
-  Chunk(position: pos)
+  result = Chunk(chunkPosition: pos)
+  result.position = ivec3(pos.x * CHUNK_WIDTH,
+                          pos.y * CHUNK_HEIGHT,
+                          pos.z * CHUNK_LENGTH)
 
-proc updateMesh*(self: Chunk, blockType: BlockType) =
+  # 3D seq
+  result.blocks = newSeqWith(CHUNK_WIDTH, newSeqWith(CHUNK_HEIGHT, newSeq[int](CHUNK_LENGTH)))
+
+proc updateMesh*(self: Chunk, blockManager: BlockManager) =
   l_verbose(f"chunk.updateMesh() at pos {self.position}")
 
   # clear everything
@@ -45,6 +53,12 @@ proc updateMesh*(self: Chunk, blockType: BlockType) =
   for local_x in  0..<CHUNK_WIDTH:
     for local_y in  0..<CHUNK_HEIGHT:
       for local_z in  0..<CHUNK_LENGTH:
+        let blockNumber = self.blocks[local_x][local_y][local_z]
+        if blockNumber == 0:
+          continue
+
+        let blockType = blockManager.blocks[blockNumber]
+
         let x = self.position.x + local_x
         let y = self.position.y + local_y
         let z = self.position.z + local_z

@@ -5,18 +5,16 @@ from sdl2_nim/sdl import Event, Keysym
 import thin/gamemaths
 include thin/simpleapp
 
-import block_type, texture_manager, camera, chunk
+import block_manager, camera, world
 
 type
   MinecraftClone = ref object of App
-    textureManager: TextureManager
-    blocks: Table[string, BlockType]
     mouseCaptured: bool
     camera: Camera
 
     shaderSamplerLocation: int
-    testChunk: Chunk
-
+    blockManager: BlockManager
+    world: World
 
 let vertGLSL = """
 #version 330
@@ -54,36 +52,14 @@ void main(void) {
 
 ###############################################################################
 
-proc createBlocks(self: MinecraftClone) =
-  # create our texture manager (256 textures that are 16 x 16 pixels each)
-  self.textureManager = newTextureManager(16, 16, 256)
-
-  # create each one of our blocks with the texture manager and a list of textures per face
-  let blocks = @[newBlockType(self.textureManager, "cobblestone", {"all": "cobblestone"}.toTable),
-                 newBlockType(self.textureManager, "grass", {"top": "grass", "bottom": "dirt", "sides": "grass_side"}.toTable),
-                 newBlockType(self.textureManager, "dirt", {"all": "dirt"}.toTable),
-                 newBlockType(self.textureManager, "stone", {"all": "sand"}.toTable),
-                 newBlockType(self.textureManager, "planks", {"all": "planks"}.toTable),
-                 newBlockType(self.textureManager, "log", {"top": "log_top", "bottom": "log_top", "sides": "log_side"}.toTable)]
-
-  # generate mipmaps for our texture manager's texture
-  self.textureManager.generateMipmaps()
-
-  # store in table for future use
-  for b in blocks:
-    self.blocks[b.name] = b
-
 
 method init(self: MinecraftClone) =
-  self.createBlocks()
-
   # enable depth testing so faces are drawn in the right order
   glEnable(GL_DEPTH_TEST)
 
-  self.testChunk = newChunk(ivec3(0, 0, 0))
-  echo "Here0"
-  self.testChunk.updateMesh(self.blocks["cobblestone"])
-  echo "Here1"
+  self.blockManager = newBlockManager()
+  self.world = newWorld(self.blockManager)
+  self.world.randomWorld()
 
   # create shader
   let shader = shading.program(vertGLSL, fragGLSL)
@@ -95,8 +71,6 @@ method init(self: MinecraftClone) =
   # it is zero by default
   # self.program.setUniform(self.shaderSamplerLocation, 0)
 
-  # leave textures bound
-  self.textureManager.doBind()
 
   # create the camera
   self.camera = newCamera(shader, self.ctx.width, self.ctx.height)
@@ -179,7 +153,7 @@ method draw(self: MinecraftClone) =
 
   self.camera.updateView()
 
-  self.testChunk.draw()
+  self.world.draw()
 
   # XXX
   # # identity

@@ -6,7 +6,7 @@ BINS = main.bin
 all: $(BINS)
 
 %.bin: %.nim
-	$(NIMC_RELEASE) $(NIM_PATHS) -o=$@ $<
+	$(NIMC_DEBUG) $(NIM_PATHS) -o=$@ $<
 
 clean:
 	rm -f *.bin *.log
