@@ -1,4 +1,4 @@
-import strformat
+import simpleutils
 
 import sdl2_nim/sdl as sdl
 from nimgl/opengl as gl import nil
@@ -65,10 +65,31 @@ proc debugMessage(source: gl.GLenum,
                   length: gl.GLsizei,
                   message: ptr gl.GLchar,
                   userParam: pointer) {.stdcall.} =
-  let trace = getStackTrace()
-  let msg = cast[cstring](message)
-  l_error("OPENGL debug:", $msg)
-  l_error(trace)
+
+  let messageStr = $(cast[cstring](message))
+  let severityStr =
+    case severity:
+      of gl.GL_DEBUG_SEVERITY_LOW:
+        "low"
+      of gl.GL_DEBUG_SEVERITY_NOTIFICATION:
+        "notification"
+      of gl.GL_DEBUG_SEVERITY_MEDIUM:
+        "medium"
+      of gl.GL_DEBUG_SEVERITY_HIGH:
+        "high"
+      else:
+        "unknown"
+
+  let msg = f"From OpenGL({severityStr}): {messageStr}"
+
+  case severity:
+    of gl.GL_DEBUG_SEVERITY_LOW, gl.GL_DEBUG_SEVERITY_NOTIFICATION:
+      l_info(msg)
+
+    else:
+      l_error(msg)
+      let trace = getStackTrace()
+      l_warning(trace)
 
 proc setup*(self: DisplayCtx,
             fullscreen = false,
@@ -136,6 +157,7 @@ proc setup*(self: DisplayCtx,
   l_debug("Vendor: ", getGLString(gl.GL_VENDOR))
   l_debug("Renderer: ", getGLString(gl.GL_RENDERER))
   l_debug("Shading language version: ", getGLString(gl.GL_SHADING_LANGUAGE_VERSION))
+
   var numAttributes: int32
   gl.glGetIntegerv(gl.GL_MAX_VERTEX_ATTRIBS, addr numAttributes)
   l_debug("Maximum # of vertex attributes supported: ", numAttributes)

@@ -1,5 +1,7 @@
 include thin/simpleapp
 
+import thin/gamemaths
+
 type
   MinecraftClone = ref object of App
     shaderMatrixLocation: int
@@ -98,4 +100,5 @@ method draw(self: MinecraftClone) =
 
 
 when isMainModule:
-  start(MinecraftClone, w=800, h=600, title="Minecraft clone", doResize=true, vsync=false)
+  start(MinecraftClone, system.currentSourcePath,
+        w=800, h=600, title="Minecraft clone", doResize=true, vsync=false)

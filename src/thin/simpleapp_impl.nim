@@ -1,3 +1,4 @@
+import os
 import tables
 
 from sdl2_nim/sdl import Event
@@ -5,7 +6,9 @@ import nimgl/opengl as gl
 
 import logsetup as logging
 
+import simpleutils
 import display, shading, loaded
+
 
 # the application
 type
@@ -76,12 +79,25 @@ proc program*(self: App): shading.ShaderProgram =
 ###############################################################################
 
 template start*(typ: typed,
+                workingDir: string,
                 w=800, h=600,
                 title="Title",
                 vsync=true,
                 doFullscreen=false,
                 doResize=true) =
+
+  let simpleAppFilePath: string =
+    if os.fileExists(workingDir):
+      os.splitPath(workingDir).head
+    else:
+      assert os.dirExists(workingDir)
+      workingDir
+
   proc main() =
+    # set the current directory to where main() is defined
+    # where this is included from
+    os.setCurrentDir(simpleAppFilePath)
+
     var app: App = typ()
     logging.initLogging(logging.lvlVerbose)
 
@@ -149,4 +165,7 @@ template start*(typ: typed,
     for program in app.programRegistry.values():
       program.stop()
 
+    app.ctx.cleanup()
+
+  # call main()
   main()

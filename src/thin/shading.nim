@@ -30,7 +30,6 @@ proc check(id: GLuint, what: GLenum, msg: string,
            logFn: typeof(glGetProgramInfoLog)) =
 
   var status: GLint
-  echo repr(statusFn)
   statusFn(id, what, addr status)
 
   l_verbose(msg & " checking status: " & $status)

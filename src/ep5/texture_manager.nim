@@ -20,7 +20,7 @@ type
 
 proc `=destroy`*(self: var typeOfDeref(TextureManager)) =
   glDeleteTextures(1, addr self.textureId)
-  l_warning(f"Destroying TextureManager")
+  l_warning("Destroying TextureManager")
 
 proc newTextureManager*(width, height, maxTextures: int): TextureManager =
   result = TextureManager(width:width, height:height, maxTextures:maxTextures)
@@ -46,6 +46,7 @@ proc unbind*(self: TextureManager) =
 
 proc generateMipmaps*(self: TextureManager) =
   ## generate mipmaps for our texture
+  l_info("generate mipmaps")
   self.doBind()
   glGenerateMipmap(GL_TEXTURE_2D_ARRAY)
   self.unbind()
@@ -60,8 +61,10 @@ proc addTexture*(self: TextureManager, name: string): int =
   self.textureNames.add(name)
 
   # load and get the image data of the texture we want
-  let path = os.joinPath(os.splitPath(system.currentSourcePath).head, "textures", f"{name}.png")
+  let path = os.joinPath("textures", f"{name}.png")
+  l_info(f"attempting to load image {path}")
   let image = stbi.loadImage(path, 4, flip=true)
+  l_verbose(f"loaded image: {image}")
 
   # make sure our texture array is bound
   self.doBind()
@@ -69,7 +72,6 @@ proc addTexture*(self: TextureManager, name: string): int =
   # paste our texture's image data in the appropriate spot in our texture array
   let zPos = self.textureNames.find(name)
   l_info(f"""adding texture "{name}" to textureManager, at position {zPos}""")
-  l_verbose(f"the image: {image}")
   glTexSubImage3D(GL_TEXTURE_2D_ARRAY,
                   0, 0, 0, zPos.GLsizei,
                   self.width.GLsizei, self.height.GLsizei, 1,

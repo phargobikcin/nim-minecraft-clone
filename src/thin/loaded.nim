@@ -30,16 +30,17 @@ type
     vbos: seq[Buffer]
 
 proc `=destroy`*(vbo: var typeOfDeref(Buffer)) =
-  l_info("destroying VBO: " & $vbo.id)
+  l_warning("destroying VBO: " & $vbo.id)
   glDeleteBuffers(1, addr vbo.id)
 
 proc `=destroy`*(ibo: var typeOfDeref(IndexBuffer)) =
-  l_info("destroying IBO: " & $ibo.id)
+  l_warning("destroying IBO: " & $ibo.id)
   glDeleteBuffers(1, addr ibo.id)
 
 proc `=destroy`*(vao: var typeOfDeref(VertexArrayObject)) =
-  l_verbose("destroying VAO: " & $vao.id)
+  l_warning("destroying VAO: " & $vao.id)
   glDeleteVertexArrays(1, addr vao.id)
+
   # XXX is this what I am suppose to do?
   if vao.ibo != nil:
     `=destroy`(vao.ibo)

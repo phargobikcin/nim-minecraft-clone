@@ -1,5 +1,7 @@
 include thin/simpleapp
 
+import thin/gamemaths
+
 import tables
 import block_type
 import texture_manager
@@ -70,7 +72,7 @@ method init(self: MinecraftClone) =
   self.createBlocks()
 
   # this is block to test
-  const blockNameTest = "log"
+  const blockNameTest = "grass"
 
   # enable depth testing so faces are drawn in the right order
   glEnable(GL_DEPTH_TEST)
@@ -99,6 +101,13 @@ method init(self: MinecraftClone) =
   self.shaderMatrixLocation = shader.findUniform("matrix")
   self.shaderSamplerLocation = shader.findUniform("texture_array_sampler")
 
+  # it is zero by default
+  # self.program.setUniform(self.shaderSamplerLocation, 0)
+
+  # leave textures bound
+  self.textureManager.doBind()
+
+
 method clear*(self: MinecraftClone) =
   # clear colour / depth
   gl.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
@@ -106,7 +115,7 @@ method clear*(self: MinecraftClone) =
 
 method draw(self: MinecraftClone) =
   # create projection matrix
-  let pMatrix = gamemaths.perspective(90.float32,
+  let pMatrix = gamemaths.perspective(90f,
                                       (self.ctx.width / self.ctx.height).float32,
                                       0.1,
                                       500)
@@ -124,13 +133,11 @@ method draw(self: MinecraftClone) =
   let mvpMatrix = pMatrix * mvMatrix
   self.program.setUniform(self.shaderMatrixLocation, mvpMatrix)
 
-  self.textureManager.doBind()
-  self.program.setUniform(self.shaderSamplerLocation, 0)
-
   glClearColor(0.0, 0.0, 0.0, 1.0)
   self.clear()
   self.vao.draw()
 
 
 when isMainModule:
-  start(MinecraftClone, w=800, h=600, title="Minecraft clone", doResize=true, vsync=false)
+  start(MinecraftClone, system.currentSourcePath,
+        w=800, h=600, title="Minecraft clone", doResize=true, vsync=false, doFullscreen=false)

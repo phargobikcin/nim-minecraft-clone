@@ -117,22 +117,6 @@ proc colorOn(lvl: Level): string =
 proc colorOff(): string =
   result = "\x1b[0m"
 
-#[
-proc formatMsg(level: Level, msg: string): string =
-  var t: TimeSpec
-  clock_gettime(CLOCK_REALTIME, t)
-
-  let micros: string = strutils.intToStr(t.tv_nsec div 1000, 6)
-
-  if lastSeconds != t.tv_sec:
-    # regetting time, as internals not exposed nicely (no inline)
-    let curTime = times.now()
-    lastTimestamp = times.format(curTime, "YYYY-MM-dd hh:mm:ss,")
-    lastSeconds = t.tv_sec
-
-  result = lastTimestamp & micros & " " & LevelNames[level] & msg
-]#
-
 proc formatMsg(level: Level, msg: string): string =
   # this is just as fast than the above in release, but slower in debug
   let curTime = times.getTime()
@@ -141,7 +125,7 @@ proc formatMsg(level: Level, msg: string): string =
   let microsStr: string = strutils.intToStr(nanos div 1000, 6)
   let secs = curTime.toUnix()
   if lastSeconds != secs:
-    lastTimestamp = times.format(curTime.local, "YYYY-MM-dd hh:mm:ss,")
+    lastTimestamp = times.format(curTime.local, "YYYY-MM-dd HH:mm:ss,")
     lastSeconds = secs
 
   result = lastTimestamp & microsStr & " " & LevelNames[level] & msg

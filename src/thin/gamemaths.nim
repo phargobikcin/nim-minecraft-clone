@@ -1,6 +1,7 @@
 import math
 
 import ./vector, ./matrix
+export vector, matrix
 
 proc scale*[T](v: GVec3[T]): GMat4[T] =
   ## Create scale matrix.
@@ -58,29 +59,6 @@ proc rotate*[T](angle: T, axis: GVec3[T]): GMat4[T] =
   result[2, 2] = (oneMinusCos * zz) + cosAngle
 
   result[3, 3] = 1.0
-
-# XXX
-# proc rotate2D[T](ang, y: T): GMat4[T] =
-#   let tmp0 = rotate[float32](ang, vec3(0, 1.0, 0))
-#   let tmp1 = rotate[float32](-y, vec3(math.cos(ang), 0, math.sin(ang)))
-#   return tmp0 * tmp1
-
-proc hrp*[T](m: GMat4[T]): GVec3[T] =
-  ## Return heading, rotation and pivot of a matrix.
-  var heading, pitch, roll: float32
-  if m[1] > 0.998: # singularity at north pole
-    heading = arctan2(m[2], m[10])
-    pitch = PI / 2
-    roll = 0
-  elif m[1] < -0.998: # singularity at south pole
-    heading = arctan2(m[2], m[10])
-    pitch = -PI / 2
-    roll = 0
-  else:
-    heading = arctan2(-m[8], m[0])
-    pitch = arctan2(-m[6], m[5])
-    roll = arcsin(m[4])
-  gvec3[T](heading, pitch, roll)
 
 proc frustum*[T](left, right, bottom, top, near, far: T): GMat4[T] =
   ## Create a frustum matrix.
@@ -224,11 +202,3 @@ proc lookAt*[T](eye, center, up: GVec3[T]): GMat4[T] =
   result[3, 1] = -(y0 * eyex + y1 * eyey + y2 * eyez)
   result[3, 2] = -(z0 * eyex + z1 * eyey + z2 * eyez)
   result[3, 3] = 1
-
-proc lookAt*[T](eye, center: GVec3[T]): GMat4[T] =
-  ## Look center from eye with default UP vector.
-  lookAt(eye, center, gvec3(T(0), 0, 1))
-
-proc angle*[T](a: GVec2[T]): T =
-  ## Angle of a Vec2.
-  arctan2(a.y, a.x)

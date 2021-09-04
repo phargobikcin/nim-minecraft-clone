@@ -1,28 +1,8 @@
-# XXX not sure about this, probably delete it
-
-# borrowed from system/timers
-
-type
-  Clockid {.importc: "clockid_t", header: "<time.h>", final.} = object
-
-  Timespec* {.importc: "struct timespec", header: "<time.h>",
-              final, pure.} = object ## struct timespec
-    tv_sec*: int  ## Seconds.
-    tv_nsec*: int ## Nanoseconds.
-
-var
-  CLOCK_REALTIME* {.importc: "CLOCK_REALTIME", header: "<time.h>".}: Clockid
-
-proc clock_gettime*(clkId: Clockid, tp: var Timespec) {.
-  importc: "clock_gettime", header: "<time.h>".}
-
-proc getTicks(): float =
-  var t: Timespec
-  clock_gettime(CLOCK_REALTIME, t)
-  result = t.tv_sec.float + (t.tv_nsec / 1000000000)
+from simpleutils import getTicks
 
 ###################################
 # timer object
+# XXX not sure about this, probably delete it
 
 
 type

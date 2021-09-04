@@ -23,7 +23,7 @@ type
 
 
 proc `$`*(self: STBImage): string =
-  result = f"STBImage(width={self.width}, height={self.height}, channels={self.channels}"
+  result = f"STBImage(width={self.width}, height={self.height}, channels={self.channels})"
 
 
 proc loadImage*(path: string, desiredChannels: int, flip=false): STBImage =
