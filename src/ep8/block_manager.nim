@@ -1,17 +1,12 @@
-import math
-import random
 import tables
-
-import thin/[gamemaths, simpleutils]
-
+import thin/simpleutils
 import block_type, texture_manager
 
 type
   BlockManager* = ref object
     textureManager: TextureManager
-    blocks*: seq[BlockType]
-    blockByName*: Table[string, BlockType]
-
+    blocks: seq[BlockType]
+    blockByName: Table[string, BlockType]
 
 proc newBlockManager*(): BlockManager =
   result = BlockManager()
@@ -47,3 +42,14 @@ proc newBlockManager*(): BlockManager =
 
   # leave textures bound
   result.textureManager.doBind()
+
+template get*(self: BlockManager, i: int): BlockType =
+  self.blocks[i]
+
+proc getByName*(self: BlockManager, s: string): BlockType =
+  if s in self.blockByName:
+    return self.blockByName[s]
+
+  raise newException(KeyError, f"{s} not in BlockManager")
+
+
