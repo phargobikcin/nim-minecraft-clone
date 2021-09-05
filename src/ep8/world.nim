@@ -1,6 +1,7 @@
 import math
 import tables
 import hashes
+import random
 import sequtils
 
 import nimgl/opengl as gl
@@ -10,6 +11,7 @@ import thin/[gamemaths, loaded, simpleutils, logsetup]
 import block_manager
 
 ###############################################################################
+# XXX move these
 
 proc hash(v: IVec3): Hash =
   ## Computes a Hash from `x`.
@@ -21,8 +23,7 @@ proc hash(v: IVec3): Hash =
   # Finish the hash.
   result = !$h
 
-type Int32P = int | int32
-proc ivec3(x,y,z : Int32P): IVec3 =
+template ivec3(x, y, z: int | int32): IVec3 =
   ivec3(x.int32, y.int32, z.int32)
 
 ###############################################################################
@@ -90,18 +91,18 @@ template get(self: Chunk, x, y, z: int): int =
   self.blocks[x][y][z]
 
 proc getBlockNumber(self: World, pos: IVec3): int =
-  let chunkPos = ivec3(math.floordiv(pos.x, CHUNK_WIDTH),
-                       math.floordiv(pos.y, CHUNK_HEIGHT),
-                       math.floordiv(pos.z, CHUNK_LENGTH))
+  let chunkPos = ivec3(math.floorDiv(pos.x, CHUNK_WIDTH),
+                       math.floorDiv(pos.y, CHUNK_HEIGHT),
+                       math.floorDiv(pos.z, CHUNK_LENGTH))
 
   if chunkPos notin self.chunks:
     return 0
 
   let
     chunk = self.chunks[chunkPos]
-    localX = math.floormod(pos.x, CHUNK_WIDTH)
-    localY = math.floormod(pos.y, CHUNK_HEIGHT)
-    localZ = math.floormod(pos.z, CHUNK_LENGTH)
+    localX = math.floorMod(pos.x, CHUNK_WIDTH)
+    localY = math.floorMod(pos.y, CHUNK_HEIGHT)
+    localZ = math.floorMod(pos.z, CHUNK_LENGTH)
 
   return chunk.get(localX, localY, localZ)
 
@@ -132,9 +133,9 @@ proc updateMesh(self: Chunk, blockManager: BlockManager, world: World) =
 
     let
       blockType = blockManager.get(blockNumber)
-      pos = ivec3(self.position.x + localX.int32,
-                  self.position.y + localY.int32,
-                  self.position.z + localZ.int32)
+      pos = ivec3(self.position.x + localX,
+                  self.position.y + localY,
+                  self.position.z + localZ)
 
     proc addFace(faceIndx: int) =
       var vertexPositions = blockType.vertexPositions[faceIndx]
@@ -182,8 +183,7 @@ proc updateVAO(self: Chunk) =
     self.vao.attach(newIndexBuffer(self.meshIndices))
     self.vao.unbind()
 
-proc randomWorld*(self: World) =
-
+proc fixedWorld*(self: World) =
 
   # create grass chunk
   for x in -2..2:
@@ -218,34 +218,28 @@ proc randomWorld*(self: World) =
 
     self.chunks[c.chunkPosition] = c
 
-
+  # update mesh etc
   for c in self.chunks.values():
     c.updateMesh(self.blockManager, self)
     c.updateVAO()
 
 
+proc randomWorld*(self: World) =
+  for x in -8..8:
+    for z in -8..8:
+      let chunkPosition = ivec3(x, -1, z)
 
-  #for x in range(8):
-  # for z in range(8):
-  #     chunk_position = ivec(x - 4, -1, z - 4)
-  #     current_chunk = Chunk(result, chunk_position)
+      let c = newChunk(chunkPosition)
+      for i, j, k in localXYZ():
+        c.blocks[i][j][k] =
+          if j > 13:
+            random.sample([0, 3])
+          else:
+            random.sample([0, 0, 1])
 
-  # for x in range(8):
-  #   for z in range(8):
-  #     chunk_position = ivec(x - 4, -1, z - 4)
-  #     current_chunk = Chunk(result, chunk_position)
+      self.chunks[c.chunkPosition] = c
 
-  #     for i in 0..<CHUNK_WIDTH:
-  #       for j in 0..<CHUNK_HEIGHT:
-  #         for k in 0..<CHUNK_LENGTH:
-  #           if j > 13:
-  #             current_chunk.blocks[i][j][k] = random.choice([0, 3])
-  #           else:
-  #             current_chunk.blocks[i][j][k] = random.choice([0, 0, 1])
-
-  #     self.chunks[chunk_position] = current_chunk
-
-  # # update each chunk's mesh
-  # for chunk in self.chunks.values():
-  #   chunk.update_mesh()
-  # # create chunks with very crude terrain generation
+  # update mesh etc
+  for c in self.chunks.values():
+    c.updateMesh(self.blockManager, self)
+    c.updateVAO()
