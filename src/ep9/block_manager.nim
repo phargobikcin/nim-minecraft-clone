@@ -1,6 +1,7 @@
 import tables
-import thin/simpleutils
-import block_type, texture_manager
+import thin/[simpleutils, logsetup]
+
+import models, block_type, texture_manager
 
 type
   BlockManager* = ref object
@@ -17,17 +18,36 @@ proc newBlockManager*(): BlockManager =
 
   # create each one of our blocks with the texture manager and a list of textures per face
   result.blocks = @[nil, # air (XXX really ?)
-                    newBlockType(textMan, "cobblestone", {"all": "cobblestone"}.toTable),
-                    newBlockType(textMan, "grass", {"top": "grass",
-                                                     "bottom": "dirt",
-                                                     "sides": "grass_side"}.toTable),
-                    newBlockType(textMan, "grass_block", {"all": "grass"}.toTable),
-                    newBlockType(textMan, "dirt", {"all": "dirt"}.toTable),
-                    newBlockType(textMan, "stone", {"all": "sand"}.toTable),
-                    newBlockType(textMan, "planks", {"all": "planks"}.toTable),
-                    newBlockType(textMan, "log", {"top": "log_top",
-                                                   "bottom": "log_top",
-                                                   "sides": "log_side"}.toTable)]
+                    newBlockType(textMan, "cobblestone", models.cube,
+                                 {"all": "cobblestone"}.toTable),
+                    newBlockType(textMan, "grass", models.cube,
+                                 {"top": "grass", "bottom": "dirt", "sides": "grass_side"}.toTable),
+                    newBlockType(textMan, "grass_block", models.cube,
+                                 {"all": "grass"}.toTable),
+                    newBlockType(textMan, "dirt", models.cube,
+                                 {"all": "dirt"}.toTable),
+                    newBlockType(textMan, "stone", models.cube,
+                                 {"all": "stone"}.toTable),
+                    newBlockType(textMan, "sand", models.cube,
+                                 {"all": "sand"}.toTable),
+                    newBlockType(textMan, "planks", models.cube,
+                                 {"all": "planks"}.toTable),
+                    newBlockType(textMan, "log", models.cube,
+                                 {"top": "log_top", "bottom": "log_top", "sides": "log_side"}.toTable),
+                    newBlockType(textMan, "daisy", models.plant,
+                                 {"all": "daisy"}.toTable),
+                    newBlockType(textMan, "rose", models.plant,
+                                 {"all": "rose"}.toTable),
+                    newBlockType(textMan, "cactus", models.cactus,
+                                 {"top": "cactus_top", "bottom": "cactus_bottom", "sides": "cactus_side"}.toTable),
+                    newBlockType(textMan, "dead_bush", models.plant,
+                                 {"all": "dead_bush"}.toTable)]
+
+
+  for b in result.blocks:
+    if b != nil:
+      l_info(f"added block {b.name} with index {b.index}")
+
 
   # generate mipmaps for our texture manager's texture
   result.textureManager.generateMipmaps()

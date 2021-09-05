@@ -47,8 +47,13 @@ in vec3 interpolated_tex_coords;
 in float interpolated_shading_value;
 
 void main(void) {
-      fragment_colour = texture(texture_array_sampler, interpolated_tex_coords) * interpolated_shading_value;
-}"""
+      vec4 texture_colour = texture(texture_array_sampler, interpolated_tex_coords);
+      fragment_colour = texture_colour * interpolated_shading_value;
+      if (texture_colour.a == 0.0) { // discard if texel's alpha component is 0 (texel is transparent)
+            discard;
+      }
+}
+"""
 
 ###############################################################################
 
@@ -93,7 +98,6 @@ proc onMouseMotion(self: MinecraftClone, x, y: int) =
 
     # clamp the camera's up / down rotation so that you can't snap your neck
     self.camera.rotation.y = max(-math.TAU / 4, min(math.TAU / 4, self.camera.rotation.y))
-    echo self.camera.rotation
 
 proc onKey(self: MinecraftClone, pressed: bool, keysym: Keysym) =
   if not self.mouseCaptured:
@@ -177,5 +181,5 @@ method draw(self: MinecraftClone) =
 
 when isMainModule:
   start(MinecraftClone, system.currentSourcePath,
-        w=800, h=600, title="Minecraft clone", doResize=true, vsync=false, doFullscreen=false)
+        w=800, h=600, title="Minecraft clone", doResize=true, vsync=true, doFullscreen=false)
 

@@ -30,7 +30,7 @@ proc newTextureManager*(width, height, maxTextures: int): TextureManager =
 
   # disable texture filtering for magnification (return the texel that's nearest to the fragment's
   # texture coordinate)
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR.GLint)
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST.GLint)
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST.GLint)
 
   glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA.GLsizei,

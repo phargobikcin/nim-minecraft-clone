@@ -91,6 +91,7 @@ template get(self: Chunk, x, y, z: int): int =
   self.blocks[x][y][z]
 
 proc getBlockNumber(self: World, pos: IVec3): int =
+
   let chunkPos = ivec3(math.floorDiv(pos.x, CHUNK_WIDTH),
                        math.floorDiv(pos.y, CHUNK_HEIGHT),
                        math.floorDiv(pos.z, CHUNK_LENGTH))
@@ -104,7 +105,15 @@ proc getBlockNumber(self: World, pos: IVec3): int =
     localY = math.floorMod(pos.y, CHUNK_HEIGHT)
     localZ = math.floorMod(pos.z, CHUNK_LENGTH)
 
-  return chunk.get(localX, localY, localZ)
+  result = chunk.get(localX, localY, localZ)
+
+  # XXX hack alert!
+  # XXX this'll be fixed in a future episode
+  # get block type and check if it's transparent or not
+  # if it is, return 0 - else leave result unmodified
+  let blockType = self.blockManager.get(result)
+  if blockType == nil or blockType.model.transparent:
+    result = 0
 
 
 iterator localXYZ(): tuple[x, y, z: int] {.inline.} =
@@ -159,12 +168,22 @@ proc updateMesh(self: Chunk, blockManager: BlockManager, world: World) =
       self.meshTexCords &= blockType.texCords[faceIndx]
       self.meshShadingValues &= blockType.shadingValues[faceIndx]
 
-    if world.getBlockNumber(pos + ivec3( 1,  0,  0)) == 0: addFace(0)
-    if world.getBlockNumber(pos + ivec3(-1,  0,  0)) == 0: addFace(1)
-    if world.getBlockNumber(pos + ivec3( 0,  1,  0)) == 0: addFace(2)
-    if world.getBlockNumber(pos + ivec3( 0, -1,  0)) == 0: addFace(3)
-    if world.getBlockNumber(pos + ivec3( 0,  0,  1)) == 0: addFace(4)
-    if world.getBlockNumber(pos + ivec3( 0,  0, -1)) == 0: addFace(5)
+    # if block is cube, we want it to check neighbouring blocks so that we don't uselessly render
+    # faces.
+    # if block isn't a cube, we just want to render all faces, regardless of neighbouring
+    # blocks since the vast majority of blocks are probably anyway going to be cubes, this won't
+    # impact performance all that much; the amount of useless faces drawn is going to be minimal
+
+    if blockType.model.isCube:
+      if world.getBlockNumber(pos + ivec3( 1,  0,  0)) == 0: addFace(0)
+      if world.getBlockNumber(pos + ivec3(-1,  0,  0)) == 0: addFace(1)
+      if world.getBlockNumber(pos + ivec3( 0,  1,  0)) == 0: addFace(2)
+      if world.getBlockNumber(pos + ivec3( 0, -1,  0)) == 0: addFace(3)
+      if world.getBlockNumber(pos + ivec3( 0,  0,  1)) == 0: addFace(4)
+      if world.getBlockNumber(pos + ivec3( 0,  0, -1)) == 0: addFace(5)
+    else:
+      for i in 0..<blockType.numberFaces:
+        addFace(i)
 
   # ok done looping... check we added anything
   self.hasMesh = self.meshIndexCounter > 0
@@ -225,17 +244,19 @@ proc fixedWorld*(self: World) =
 
 
 proc randomWorld*(self: World) =
-  for x in -8..8:
-    for z in -8..8:
+  for x in -1..1:
+    for z in -1..1:
       let chunkPosition = ivec3(x, -1, z)
 
       let c = newChunk(chunkPosition)
       for i, j, k in localXYZ():
         c.blocks[i][j][k] =
-          if j > 13:
-            random.sample([0, 3])
+          if j == 15:
+            random.sample([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 9, 10, 10, 12, 12, 11])
+          elif j > 12:
+            random.sample([0, 2, 6])
           else:
-            random.sample([0, 0, 1])
+            random.sample([0, 0, 1, 4, 5])
 
       self.chunks[c.chunkPosition] = c
 

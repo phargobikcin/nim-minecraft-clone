@@ -1,34 +1,51 @@
 import tables
-import ./numbers
+import models
 import texture_manager
 
 type
   BlockType* = ref object
+    index*: int
     name*: string
+    model*: Model
+    numberFaces*: int
+
     # XXX should these be public?
     vertexPositions*: seq[seq[float32]]
     texCords*: seq[seq[float32]]
     shadingValues*: seq[seq[float32]]
 
+var localCount = 1
 
 proc newBlockType*(manager: TextureManager,
-                   name = "unknown",
+                   name: string,
+                   model = models.cube,
                    blockFaceTextures = {"all": "cobblestone"}.toTable): BlockType =
 
   # set our block type's vertex positions, texture coordinates, and indices to the default values
   # in our numbers.nim file
-  var blockType = BlockType(name: name,
-                            vertexPositions: numbers.vertexPositions,
-                            texCords: numbers.texCords,
-                            shadingValues: numbers.shadingValues)
+  var blockType = BlockType(index: localCount,
+                            name: name,
+                            model: model,
+                            vertexPositions: model.vertexPositions,
+                            texCords: model.texCords,
+                            shadingValues: model.shadingValues,
+                            numberFaces: len(model.texCords))
+
+  # XXX increment local count... bit hacky since block manager should probably set it
+  inc(localCount)
+
 
   # note, these are copies.  This is handy for texCords, since we need to modify our texture
   # coordinates in a different way for each block type (to have different textures per block)
 
   proc setBlockFace(faceIndx: int, texturePos: int) =
-    # set a specific face of the block to a certain texture
-    for vertex in 0..3:
-      blockType.texCords[faceIndx][vertex * 3 + 2] = texturePos.float32
+    # XXX bit hacky, feels like we should be doing things differently for cubes...
+
+    # make sure we don't add inexistent faces
+    if faceIndx < blockType.numberFaces:
+      # set a specific face of the block to a certain texture
+      for vertex in 0..3:
+        blockType.texCords[faceIndx][vertex * 3 + 2] = texturePos.float32
 
   # go through all the block faces we specified a texture for
   for face, textureName in blockFaceTextures.pairs():
