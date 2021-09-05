@@ -64,7 +64,9 @@ proc newChunk*(pos: IVec3): Chunk =
                           pos.z * CHUNK_LENGTH)
 
   # 3D seq
-  result.blocks = newSeqWith(CHUNK_WIDTH, newSeqWith(CHUNK_HEIGHT, newSeq[int](CHUNK_LENGTH)))
+  result.blocks = newSeqWith(CHUNK_WIDTH,
+                             newSeqWith(CHUNK_HEIGHT,
+                                        newSeq[int](CHUNK_LENGTH)))
 
 ###############################################################################
 
@@ -84,21 +86,12 @@ template get(self: Chunk, x, y, z: int): int =
   self.blocks[x][y][z]
 
 proc getBlockNumber(self: World, pos: IVec3): int =
-  let
-    x = pos.x / CHUNK_WIDTH
-    y = pos.y / CHUNK_HEIGHT
-    z = pos.z / CHUNK_LENGTH
-    x2 = pos.x div CHUNK_WIDTH
-    y2 = pos.y div CHUNK_HEIGHT
-    z2 = pos.z div CHUNK_LENGTH
-
-  let chunkPos = ivec3(math.floor(x).int32,
-                       math.floor(y).int32,
-                       math.floor(z).int32)
-  let chunkPos2 = ivec3(x2, y2, z2)
-  echo f"chunkPos= {chunkPos}, chunkPos2= {chunkPos2}"
+  let chunkPos = ivec3(math.floor(pos.x / CHUNK_WIDTH).int32,
+                       math.floor(pos.y / CHUNK_HEIGHT).int32,
+                       math.floor(pos.z / CHUNK_LENGTH).int32)
 
   if chunkPos notin self.chunks:
+    echo f"MISS {pos} {chunkPos}"
     return 0
 
   let chunk = self.chunks[chunkPos]
@@ -137,32 +130,38 @@ proc updateMesh(self: Chunk, blockManager: BlockManager, world: World) =
 
     let
       blockType = blockManager.get(blockNumber)
-      x = self.position.x + localX
-      y = self.position.y + localY
-      z = self.position.z + localZ
+      pos = ivec3(self.position.x + localX.int32,
+                  self.position.y + localY.int32,
+                  self.position.z + localZ.int32)
 
-    var vertexPositions = blockType.vertexPositions
-    for ii in 0..<24:
-      vertexPositions[ii * 3] += x.float32
-      vertexPositions[ii * 3 + 1] += y.float32
-      vertexPositions[ii * 3 + 2] += z.float32
+    proc addFace(faceIndx: int) =
+      var vertexPositions = blockType.vertexPositions[faceIndx]
+      for ii in 0..3:
+        vertexPositions[ii * 3] += pos.x.float32
+        vertexPositions[ii * 3 + 1] += pos.y.float32
+        vertexPositions[ii * 3 + 2] += pos.z.float32
 
-    # append onto end of mesh
-    self.meshVertexPositions &= vertexPositions
+      # append onto end of mesh
+      self.meshVertexPositions &= vertexPositions
 
-    var indices = blockType.indices
-    for i in 0..<36:
-      indices[i] += self.meshIndexCounter.uint32
+      var indices = @[0.uint32, 1, 2, 0, 2, 3]
+      for i in 0..5:
+        indices[i] += self.meshIndexCounter.uint32
 
-    # extend indices
-    self.meshIndices &= indices
+      # there are 4 unique indices, hence we increment that
+      self.meshIndexCounter += 4
+      self.meshIndices &= indices
 
-    # there are 24 unique indices, hence we increment that
-    self.meshIndexCounter += 24
+      # extend rest
+      self.meshTexCords &= blockType.texCords[faceIndx]
+      self.meshShadingValues &= blockType.shadingValues[faceIndx]
 
-    # extend rest
-    self.meshTexCords &= blockType.texCords
-    self.meshShadingValues &= blockType.shadingValues
+    if world.getBlockNumber(pos + ivec3( 1,  0,  0)) == 0: addFace(0)
+    if world.getBlockNumber(pos + ivec3(-1,  0,  0)) == 0: addFace(1)
+    if world.getBlockNumber(pos + ivec3( 0,  1,  0)) == 0: addFace(2)
+    if world.getBlockNumber(pos + ivec3( 0, -1,  0)) == 0: addFace(3)
+    if world.getBlockNumber(pos + ivec3( 0,  0,  1)) == 0: addFace(4)
+    if world.getBlockNumber(pos + ivec3( 0,  0, -1)) == 0: addFace(5)
 
   # ok done looping... check we added anything
   self.hasMesh = self.meshIndexCounter > 0
@@ -188,9 +187,10 @@ proc randomWorld*(self: World) =
     # fill with cobbestone!
     c.blocks[x][y][z] = 1
 
+  self.chunks[c.chunkPosition] = c
+
   c.updateMesh(self.blockManager, self)
   c.updateVAO()
-  self.chunks[c.chunkPosition] = c
 
 
 

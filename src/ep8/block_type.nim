@@ -6,10 +6,9 @@ type
   BlockType* = ref object
     name*: string
     # XXX should these be public?
-    vertexPositions*: seq[float32]
-    texCords*: seq[float32]
-    indices*: seq[uint32]
-    shadingValues*: seq[float32]
+    vertexPositions*: seq[seq[float32]]
+    texCords*: seq[seq[float32]]
+    shadingValues*: seq[seq[float32]]
 
 
 proc newBlockType*(manager: TextureManager,
@@ -21,16 +20,15 @@ proc newBlockType*(manager: TextureManager,
   var blockType = BlockType(name: name,
                             vertexPositions: numbers.vertexPositions,
                             texCords: numbers.texCords,
-                            indices: numbers.indices,
                             shadingValues: numbers.shadingValues)
 
   # note, these are copies.  This is handy for texCords, since we need to modify our texture
   # coordinates in a different way for each block type (to have different textures per block)
 
-  proc setBlockFace(facePos: int, texturePos: int) =
+  proc setBlockFace(faceIndx: int, texturePos: int) =
     # set a specific face of the block to a certain texture
     for vertex in 0..3:
-      blockType.texCords[facePos * 12 + vertex * 3 + 2] = texturePos.float32
+      blockType.texCords[faceIndx][vertex * 3 + 2] = texturePos.float32
 
   # go through all the block faces we specified a texture for
   for face, textureName in blockFaceTextures.pairs():
