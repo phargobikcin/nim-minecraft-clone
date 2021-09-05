@@ -42,7 +42,7 @@ proc newCamera*(p: ShaderProgram, w, h: int): Camera =
 ###############################################################################
 
 proc updatePosition*(self: Camera, deltaTime: float) =
-  let speed = 3f
+  let speed = 15f
   let multiplier: float32 = speed * deltaTime.float32
 
   self.position.y += self.movementInput.y.float32 * multiplier

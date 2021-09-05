@@ -21,6 +21,10 @@ proc hash(v: IVec3): Hash =
   # Finish the hash.
   result = !$h
 
+type Int32P = int | int32
+proc ivec3(x,y,z : Int32P): IVec3 =
+  ivec3(x.int32, y.int32, z.int32)
+
 ###############################################################################
 
 const
@@ -86,20 +90,18 @@ template get(self: Chunk, x, y, z: int): int =
   self.blocks[x][y][z]
 
 proc getBlockNumber(self: World, pos: IVec3): int =
-  let chunkPos = ivec3(math.floor(pos.x / CHUNK_WIDTH).int32,
-                       math.floor(pos.y / CHUNK_HEIGHT).int32,
-                       math.floor(pos.z / CHUNK_LENGTH).int32)
+  let chunkPos = ivec3(math.floordiv(pos.x, CHUNK_WIDTH),
+                       math.floordiv(pos.y, CHUNK_HEIGHT),
+                       math.floordiv(pos.z, CHUNK_LENGTH))
 
   if chunkPos notin self.chunks:
-    echo f"MISS {pos} {chunkPos}"
     return 0
 
-  let chunk = self.chunks[chunkPos]
-
   let
-    localX = pos.x mod CHUNK_WIDTH
-    localY = pos.y mod CHUNK_HEIGHT
-    localZ = pos.z mod CHUNK_LENGTH
+    chunk = self.chunks[chunkPos]
+    localX = math.floormod(pos.x, CHUNK_WIDTH)
+    localY = math.floormod(pos.y, CHUNK_HEIGHT)
+    localZ = math.floormod(pos.z, CHUNK_LENGTH)
 
   return chunk.get(localX, localY, localZ)
 
@@ -181,16 +183,45 @@ proc updateVAO(self: Chunk) =
     self.vao.unbind()
 
 proc randomWorld*(self: World) =
-  let c = newChunk(ivec3(0, 0, 0))
 
-  for x, y, z in localXYZ():
-    # fill with cobbestone!
-    c.blocks[x][y][z] = 1
 
-  self.chunks[c.chunkPosition] = c
+  # create grass chunk
+  for x in -2..2:
+    for z in -2..2:
+      let c = newChunk(ivec3(x, -1, z))
+      for x, y, z in localXYZ():
+        # fill with grass
+        if y == CHUNK_HEIGHT - 1:
+          c.blocks[x][y][z] = 2 #self.blockManager.getByName("grass")
+        else:
+          c.blocks[x][y][z] = 4 #self.blockManager.getByName("grass")
 
-  c.updateMesh(self.blockManager, self)
-  c.updateVAO()
+      self.chunks[c.chunkPosition] = c
+
+  # create a pillar chunk
+  for y in 0..5:
+    let c = newChunk(ivec3(0, y, 0))
+
+    for x, y, z in localXYZ():
+      # fill with cobbestone!
+      c.blocks[x][y][z] = 1
+
+    self.chunks[c.chunkPosition] = c
+
+  # create a chunk with some air
+  for y in 0..5:
+    let c = newChunk(ivec3(1, y, 0))
+
+    for x, y, z in localXYZ():
+      # fill with cobbestone!
+      c.blocks[x][y][z] = 0
+
+    self.chunks[c.chunkPosition] = c
+
+
+  for c in self.chunks.values():
+    c.updateMesh(self.blockManager, self)
+    c.updateVAO()
 
 
 
