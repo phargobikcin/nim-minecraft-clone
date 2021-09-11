@@ -249,8 +249,9 @@ proc fixedWorld*(self: World) =
 
 
 proc randomWorld*(self: World) =
-  for x in -1..1:
-    for z in -1..1:
+  let s0 = getTicks()
+  for x in -4..<4:
+    for z in -4..<4:
       let chunkPosition = ivec3(x, -1, z)
 
       let c = newChunk(chunkPosition)
@@ -265,7 +266,26 @@ proc randomWorld*(self: World) =
 
       self.chunks[c.chunkPosition] = c
 
+  let s1 = getTicks()
+
   # update mesh etc
   for c in self.chunks.values():
     c.updateMesh(self.blockManager, self)
     c.updateVAO()
+
+  let s2 = getTicks()
+  let x = (s2 - s1) / len(self.chunks).float
+  l_critical(f"time taken to create chunk {s2-s1} {s1-s0}")
+  l_critical(f"time taken to create chunk {x} {len(self.chunks)} ")
+
+
+  # timings per chunk before ep10 chunk changes
+
+  # python: ~50 msecs
+
+  # nim debug_slow: ~75 msecs
+  # nim debug: ~25 msecs
+
+  # nim release w/o lto: ~13 msecs
+  # nim release: ~10 msecs
+  # nim danger: ~8 msecs
