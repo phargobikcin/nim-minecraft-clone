@@ -129,7 +129,6 @@ proc onMouseMotion(self: MinecraftClone, x, y: int) =
 
     # clamp the camera's up / down rotation so that you can't snap your neck
     self.camera.rotation.y = max(-math.TAU / 4, min(math.TAU / 4, self.camera.rotation.y))
-    echo self.camera.rotation
 
 proc onKey(self: MinecraftClone, pressed: bool, keysym: Keysym) =
   if not self.mouseCaptured:

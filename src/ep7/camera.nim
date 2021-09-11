@@ -62,7 +62,6 @@ proc updatePosition*(self: Camera, deltaTime: float) =
 
   self.position.x += math.cos(angle) * multiplier
   self.position.z += math.sin(angle) * multiplier
-  # echo self.position
 
 proc updateMatrices*(self: Camera) =
   # create model view matrix
@@ -78,7 +77,6 @@ proc updateMatrices*(self: Camera) =
 
     # this rotates around an axis based of x
     let axis = vec3(math.cos(x), 0, math.sin(x))
-    # echo f"axis {axis}"
     vMatrix = vMatrix * gamemaths.rotate(-y, axis)
 
   # this needs to come first for a first person view and we need to play around with the x rotation
@@ -93,3 +91,4 @@ proc updateMatrices*(self: Camera) =
   let mvpMatrix = self.pMatrix * vMatrix
   self.program.setUniform(self.shaderMatrixLocation, mvpMatrix)
 
+  

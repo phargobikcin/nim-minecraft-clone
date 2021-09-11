@@ -13,7 +13,7 @@ binDir = "bin/"
 bin = @[]
 
 # episodes
-for i in 1..6:
+for i in 1..9:
   let binName = "ep" & $i & "/main"
   bin.add binName
   namedBin[binName] = "ep" & $ i & ".bin"
