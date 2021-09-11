@@ -90,9 +90,9 @@ method onResized(self: MinecraftClone, width, height: int) =
 
 proc onMouseMotion(self: MinecraftClone, x, y: int) =
   if self.mouseCaptured:
-    let sensitivity = 0.004f
+    let sensitivity = 0.002f
 
-    self.camera.rotation.x -= x.float32 * sensitivity
+    self.camera.rotation.x += x.float32 * sensitivity
     self.camera.rotation.y += y.float32 * sensitivity
 
     # clamp the camera's up / down rotation so that you can't snap your neck

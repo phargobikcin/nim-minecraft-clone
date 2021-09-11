@@ -3,6 +3,8 @@ import math
 import thin/[gamemaths, shading, simpleutils]
 import thin/logsetup as logging
 
+const FOV = 70f
+
 type
   Camera* = ref object
     width: int
@@ -33,8 +35,8 @@ proc newCamera*(p: ShaderProgram, w, h: int): Camera =
   # what we consider "forwards" is the negative z axis
   result.position.x = math.TAU / 4
 
-  result.position = vec3(0, 10, -20)
-  result.rotation = vec2(math.TAU / 4.0, 0)
+  result.position = vec3(0, 0, 0)
+  result.rotation = vec2(-math.TAU / 4.0, 0)
 
   # set this once at the start, only changes if viewport changes
   result.updatePerspective(w, h)
@@ -51,9 +53,8 @@ proc updatePosition*(self: Camera, deltaTime: float) =
   if self.movementInput.x == 0 and self.movementInput.z == 0:
     return
 
-  # we need to subtract tau / 4 to move in the positive z direction instead of the positive x direction
-  let angle = self.rotation.x + math.arctan2(self.movementInput.z.float32,
-                                             self.movementInput.x.float32) - math.TAU / 4
+  let angle = self.rotation.x - math.arctan2(self.movementInput.z.float32,
+                                             self.movementInput.x.float32) + math.TAU / 4
 
   block:
     let rotX = self.rotation.x
@@ -73,7 +74,7 @@ proc updatePerspective*(self: Camera, width, height: int) =
   self.height = height
 
   let aspectRatio = (width / height).float32
-  let pMatrix = gamemaths.perspective(90f, aspectRatio, 0.1, 500)
+  let pMatrix = gamemaths.perspective(FOV, aspectRatio, 0.1, 500)
   self.program.setUniform(self.perLocation, pMatrix)
 
   l_verbose(f"updated pMatrix with {width} x {height}")
@@ -95,11 +96,11 @@ proc updateView*(self: Camera) =
   # this needs to come first for a first person view and we need to play around with the x rotation
   # angle a bit since our 0 angle is on the positive x axis while the matrix library's 0 angle is
   # on the negative z axis (because of normalized device coordinates)
-  rotate2D(-(self.rotation.x - math.TAU / 4), self.rotation.y)
+  rotate2D(self.rotation.x + math.TAU / 4, self.rotation.y)
 
   # this needs to be negative, since in reality we are moving the world - not the camera
   let p = self.position
-  vMatrix = vMatrix * gamemaths.translate(vec3(-p.x, -p.y, p.z))
+  vMatrix = vMatrix * gamemaths.translate(-p)
 
   self.program.setUniform(self.viewLocation, vMatrix)
 
