@@ -22,7 +22,7 @@ proc translate*[T](v: GVec3[T]): GMat4[T] =
   )
 
 proc rotate*[T](angle: T, axis: GVec3[T]): GMat4[T] =
-  # rotate around an arbirtray axis
+  # rotate around an arbitrary axis
   let
     normV = normalise(axis)
 
@@ -202,3 +202,29 @@ proc lookAt*[T](eye, center, up: GVec3[T]): GMat4[T] =
   result[3, 1] = -(y0 * eyex + y1 * eyey + y2 * eyez)
   result[3, 2] = -(z0 * eyex + z1 * eyey + z2 * eyez)
   result[3, 3] = 1
+
+
+proc lookAt2*[T](position, target, worldUp: GVec3[T]): GMat4[T] =
+  ## Create a matrix that would convert eye pos to looking at center.
+
+  # Calculate cameraDirection
+  let zaxis = normalise(position - target)
+
+  # Get positive right axis vector
+  let rhAxis = normalise(cross(normalise(worldUp), zaxis))
+
+  # Calculate camera up vector
+  let yaxis = cross(zaxis, rhAxis);
+
+  var translation = iGMat4[T]()
+  translation[3][0] = -position.x
+  translation[3][1] = -position.y
+  translation[3][2] = -position.z
+
+  var rotation = iGMat4[T]()
+  rotation[0] = rhAxis
+  rotation[1] = yaxis
+  rotation[2] = zaxis
+
+  # Return lookAt matrix as combination of translation and rotation matrix
+  return transpose(rotation) * translation

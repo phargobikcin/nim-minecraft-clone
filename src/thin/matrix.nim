@@ -40,6 +40,22 @@ proc gmat4*[T](m00, m01, m02, m03,
                  m20, m21, m22, m23,
                  m30, m31, m32, m33])
 
+
+proc iGMat2*[T](): GMat2[T] =
+  gmat2[T](1.T, 0.T,
+           0.T, 1.T)
+
+proc iGMat3*[T](): GMat3[T] =
+  gmat3[T](1.T, 0.T, 0.T,
+           0.T, 1.T, 0.T,
+           0.T, 0.T, 1.T)
+
+proc iGMat4*[T](): GMat4[T] =
+  gmat4[T](1.T, 0.T, 0.T, 0.T,
+           0.T, 1.T, 0.T, 0.T,
+           0.T, 0.T, 1.T, 0.T,
+           0.T, 0.T, 0.T, 1.T)
+
 ###############################################################################
 # accessors
 
@@ -96,21 +112,16 @@ proc matToString[T](a: T, n: int): string =
   result.add "\n)"
 
 template genMatConstructor(lower, upper, T: untyped) =
+
   # default is identity matrix:
   proc `lower 2`*(): `upper 2` =
-    gmat2[T](1.T, 0.T,
-             0.T, 1.T)
+    iGMat2[T]()
 
   proc `lower 3`*(): `upper 3` =
-    gmat3[T](1.T, 0.T, 0.T,
-             0.T, 1.T, 0.T,
-             0.T, 0.T, 1.T)
+    iGMat3[T]()
 
   proc `lower 4`*(): `upper 4` =
-    gmat4[T](1.T, 0.T, 0.T, 0.T,
-             0.T, 1.T, 0.T, 0.T,
-             0.T, 0.T, 1.T, 0.T,
-             0.T, 0.T, 0.T, 1.T)
+    iGMat4[T]()
 
   # by values:
   proc `lower 2`*(m00, m01,

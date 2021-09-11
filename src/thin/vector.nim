@@ -289,7 +289,7 @@ proc length*[T](a: GVec4[T]): T =
 proc normalise*[T](a: GVec234[T]): type(a) =
   a / a.length
 
-proc crossProduct*[T](a, b: GVec3[T]): GVec3[T] =
+proc cross*[T](a, b: GVec3[T]): GVec3[T] =
   gvec3(
     a.y * b.z - a.z * b.y,
     a.z * b.x - a.x * b.z,
