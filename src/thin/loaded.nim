@@ -30,11 +30,9 @@ type
     vbos: seq[Buffer]
 
 proc `=destroy`*(vbo: var typeOfDeref(Buffer)) =
-  l_warning("destroying VBO: " & $vbo.id)
   glDeleteBuffers(1, addr vbo.id)
 
 proc `=destroy`*(ibo: var typeOfDeref(IndexBuffer)) =
-  l_warning("destroying IBO: " & $ibo.id)
   glDeleteBuffers(1, addr ibo.id)
 
 proc `=destroy`*(vao: var typeOfDeref(VertexArrayObject)) =
