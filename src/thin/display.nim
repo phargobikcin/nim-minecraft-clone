@@ -84,7 +84,7 @@ proc debugMessage(source: gl.GLenum,
 
   case severity:
     of gl.GL_DEBUG_SEVERITY_LOW, gl.GL_DEBUG_SEVERITY_NOTIFICATION:
-      l_info(msg)
+      discard
 
     else:
       l_error(msg)
