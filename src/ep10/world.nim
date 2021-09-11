@@ -30,7 +30,7 @@ template ivec3(x, y, z: int | int32): IVec3 =
 
 const
   CHUNK_WIDTH = 16
-  CHUNK_HEIGHT = 64
+  CHUNK_HEIGHT = 16
   CHUNK_LENGTH = 16
 
 type
@@ -239,13 +239,8 @@ proc fixedWorld*(self: World) =
 
   # update mesh etc
   for c in self.chunks.values():
-    let s0 = getTicks()
     c.updateMesh(self.blockManager, self)
-    let s1 = getTicks()
     c.updateVAO()
-    let s2 = getTicks()
-
-    l_info(f"time taken to create chunk {s1-s0} {s2-s1}")
 
 
 proc randomWorld*(self: World) =
@@ -283,9 +278,9 @@ proc randomWorld*(self: World) =
 
   # python: ~50 msecs
 
-  # nim debug_slow: ~75 msecs
-  # nim debug: ~25 msecs
+  # nim debug_slow: ~18 msecs
+  # nim debug: ~6.6 msecs
 
-  # nim release w/o lto: ~13 msecs
-  # nim release: ~10 msecs
-  # nim danger: ~8 msecs
+  # nim release w/o lto: ~3.5 msecs
+  # nim release: ~3.0 msecs
+  # nim danger: ~2.7 msecs
