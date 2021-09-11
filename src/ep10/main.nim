@@ -162,5 +162,5 @@ method draw(self: MinecraftClone) =
 
 when isMainModule:
   start(MinecraftClone, system.currentSourcePath,
-        w=800, h=600, title="Minecraft clone", doResize=true, vsync=true, doFullscreen=false)
+        w=1024, h=768, title="Minecraft clone", doResize=true, vsync=false, doFullscreen=false)
 

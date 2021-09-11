@@ -174,6 +174,7 @@ proc updateMesh(self: Chunk, blockManager: BlockManager, world: World) =
     # blocks since the vast majority of blocks are probably anyway going to be cubes, this won't
     # impact performance all that much; the amount of useless faces drawn is going to be minimal
 
+    # XXX this is slow...
     if blockType.model.isCube:
       if world.getBlockNumber(pos + ivec3( 1,  0,  0)) == 0: addFace(0)
       if world.getBlockNumber(pos + ivec3(-1,  0,  0)) == 0: addFace(1)
