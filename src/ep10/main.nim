@@ -71,8 +71,8 @@ method init(self: MinecraftClone) =
 
   self.blockManager = newBlockManager()
   self.world = newWorld(self.blockManager)
-  self.world.fixedWorld()
-  #self.world.randomWorld()
+  #self.world.fixedWorld()
+  self.world.randomWorld()
 
   # create shader
   let shader = shading.program(vertGLSL, fragGLSL)
