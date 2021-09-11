@@ -3,18 +3,23 @@ import tables
 from sdl2_nim/sdl import Event, Keysym
 
 import thin/gamemaths
+import block_manager, camera, world
+
 include thin/simpleapp
 
-import block_manager, camera, world
+
+###############################################################################
 
 type
   MinecraftClone = ref object of App
     mouseCaptured: bool
     camera: Camera
 
-    shaderSamplerLocation: int
     blockManager: BlockManager
     world: World
+
+
+###############################################################################
 
 let vertGLSL = """
 #version 330
@@ -31,10 +36,11 @@ uniform mat4 view;
 uniform mat4 perspective;
 
 void main(void) {
-       interpolated_tex_coords = tex_coords;
-       interpolated_shading_value = shading_value;
-       gl_Position = perspective * view * vec4(vertex_position, 1.0);
-}"""
+  interpolated_tex_coords = tex_coords;
+  interpolated_shading_value = shading_value;
+  gl_Position = perspective * view * vec4(vertex_position, 1.0);
+}
+"""
 
 let fragGLSL = """
 #version 330
@@ -47,16 +53,15 @@ in vec3 interpolated_tex_coords;
 in float interpolated_shading_value;
 
 void main(void) {
-      vec4 texture_colour = texture(texture_array_sampler, interpolated_tex_coords);
-      fragment_colour = texture_colour * interpolated_shading_value;
-      if (texture_colour.a == 0.0) { // discard if texel's alpha component is 0 (texel is transparent)
-            discard;
-      }
+  vec4 texture_colour = texture(texture_array_sampler, interpolated_tex_coords);
+  fragment_colour = texture_colour * interpolated_shading_value;
+  if (texture_colour.a == 0.0) {
+    discard;
+  }
 }
 """
 
 ###############################################################################
-
 
 method init(self: MinecraftClone) =
   # enable depth testing so faces are drawn in the right order
@@ -65,18 +70,13 @@ method init(self: MinecraftClone) =
 
   self.blockManager = newBlockManager()
   self.world = newWorld(self.blockManager)
-  self.world.randomWorld()
+  self.world.fixedWorld()
+  #self.world.randomWorld()
 
   # create shader
   let shader = shading.program(vertGLSL, fragGLSL)
   self.add("shader", shader)
   shader.use()
-
-  self.shaderSamplerLocation = shader.findUniform("texture_array_sampler")
-
-  # it is zero by default
-  # self.program.setUniform(self.shaderSamplerLocation, 0)
-
 
   # create the camera
   self.camera = newCamera(shader, self.ctx.width, self.ctx.height)
@@ -91,8 +91,6 @@ proc onMouseMotion(self: MinecraftClone, x, y: int) =
   if self.mouseCaptured:
     let sensitivity = 0.004f
 
-    # this needs to be negative since turning to the left decreases delta_x while increasing the x
-    # rotation angle
     self.camera.rotation.x -= x.float32 * sensitivity
     self.camera.rotation.y += y.float32 * sensitivity
 
@@ -148,7 +146,6 @@ method update(self: MinecraftClone, deltaTime: float) =
 ###############################################################################
 
 method clear(self: MinecraftClone) =
-  # clear colour / depth
   gl.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
 
@@ -159,23 +156,6 @@ method draw(self: MinecraftClone) =
   self.camera.updateView()
 
   self.world.draw()
-
-  # XXX
-  # # identity
-  # for x in -32..32:
-  #   for z in -32..32:
-  #     let pos = vec3(x.float32, 0.float32, z.float32)
-  #     let mMatrix = gamemaths.translate(pos)
-  #     self.program.setUniform(self.modelLocation, mMatrix)
-  #     self.vao.draw()
-
-  # for x in -16..16:
-  #   for y in 1..17:
-  #     for z in -16..16:
-  #       let pos = vec3(x.float32, y.float32, z.float32)
-  #       let mMatrix = gamemaths.translate(pos)
-  #       self.program.setUniform(self.modelLocation, mMatrix)
-  #       self.vao.draw()
 
 ###############################################################################
 

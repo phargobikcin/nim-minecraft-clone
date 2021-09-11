@@ -30,7 +30,7 @@ template ivec3(x, y, z: int | int32): IVec3 =
 
 const
   CHUNK_WIDTH = 16
-  CHUNK_HEIGHT = 16
+  CHUNK_HEIGHT = 64
   CHUNK_LENGTH = 16
 
 type
@@ -205,15 +205,21 @@ proc updateVAO(self: Chunk) =
 proc fixedWorld*(self: World) =
 
   # create grass chunk
-  for x in -2..2:
-    for z in -2..2:
+  for x in -3..3:
+    for z in -3..3:
       let c = newChunk(ivec3(x, -1, z))
-      for x, y, z in localXYZ():
-        # fill with grass
-        if y == CHUNK_HEIGHT - 1:
-          c.blocks[x][y][z] = 2 #self.blockManager.getByName("grass")
-        else:
-          c.blocks[x][y][z] = 4 #self.blockManager.getByName("grass")
+      for i, j, k in localXYZ():
+
+        c.blocks[i][j][k] =
+          if j == CHUNK_HEIGHT - 1:
+            if x == 0 and z == 0:
+              self.blockManager.getByName("cobblestone").index
+            else:
+              random.sample([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 9, 10, 10, 12, 12, 11])
+          elif j == CHUNK_HEIGHT - 2:
+            self.blockManager.getByName("grass").index
+          else:
+            self.blockManager.getByName("dirt").index
 
       self.chunks[c.chunkPosition] = c
 
@@ -223,24 +229,22 @@ proc fixedWorld*(self: World) =
 
     for x, y, z in localXYZ():
       # fill with cobbestone!
-      c.blocks[x][y][z] = 1
+      c.blocks[x][y][z] = random.sample([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                         5, 5, 5, 5,
+                                         0, 0])
 
-    self.chunks[c.chunkPosition] = c
-
-  # create a chunk with some air
-  for y in 0..5:
-    let c = newChunk(ivec3(1, y, 0))
-
-    for x, y, z in localXYZ():
-      # fill with cobbestone!
-      c.blocks[x][y][z] = 0
 
     self.chunks[c.chunkPosition] = c
 
   # update mesh etc
   for c in self.chunks.values():
+    let s0 = getTicks()
     c.updateMesh(self.blockManager, self)
+    let s1 = getTicks()
     c.updateVAO()
+    let s2 = getTicks()
+
+    l_info(f"time taken to create chunk {s1-s0} {s2-s1}")
 
 
 proc randomWorld*(self: World) =

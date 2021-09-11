@@ -55,6 +55,11 @@ proc updatePosition*(self: Camera, deltaTime: float) =
   let angle = self.rotation.x + math.arctan2(self.movementInput.z.float32,
                                              self.movementInput.x.float32) - math.TAU / 4
 
+  block:
+    let rotX = self.rotation.x
+    let moveX = self.movementInput.x
+    let moveZ = self.movementInput.z
+    l_verbose(f"{rotx=:.1f} {moveX=} {moveZ=} {angle=:.1f}")
 
   # The mouse moves in two axis.  the x part (or left and right) is converted into a angle above,
   # and used to update the movement forward,backwards and sideways - since those directions are
