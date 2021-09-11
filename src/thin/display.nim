@@ -109,6 +109,8 @@ proc setup*(self: DisplayCtx,
   discard glSetAttribute(GLattr.GL_CONTEXT_MAJOR_VERSION, 4)
   discard glSetAttribute(GLattr.GL_CONTEXT_MINOR_VERSION, 3)
   discard glSetAttribute(GLattr.GL_DOUBLEBUFFER, 1)
+  discard glSetAttribute(GLattr.GL_MULTISAMPLEBUFFERS, 1)
+  discard glSetAttribute(GLattr.GL_MULTISAMPLESAMPLES, 16)
 
   # create window
   let createFlags: uint32 =
@@ -142,8 +144,6 @@ proc setup*(self: DisplayCtx,
 
   if not gl.glInit():
     fatalError("OpenGL not loaded correctly.")
-
-  #XXXglu.loadExtensions()
 
   # syncs with monitor's vertical refresh
   if sdl.glSetSwapInterval(ord(verticalSync)) < 0:

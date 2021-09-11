@@ -67,6 +67,7 @@ method init(self: MinecraftClone) =
   # enable depth testing so faces are drawn in the right order
   glEnable(GL_DEPTH_TEST)
   glEnable(GL_CULL_FACE)
+  glEnable(GL_MULTISAMPLE)
 
   self.blockManager = newBlockManager()
   self.world = newWorld(self.blockManager)
