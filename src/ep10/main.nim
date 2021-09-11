@@ -117,6 +117,11 @@ proc onKey(self: MinecraftClone, pressed: bool, keysym: Keysym) =
       self.camera.movementInput.y += rel
     of sdl.K_LSHIFT:
       self.camera.movementInput.y -= rel
+    of sdl.K_j:
+      let x = ivec3(self.camera.position.x.int32,
+                    self.camera.position.y.int32,
+                    self.camera.position.z.int32)
+      self.world.setBlock(x, 7)
     else:
       discard
 
@@ -162,5 +167,5 @@ method draw(self: MinecraftClone) =
 
 when isMainModule:
   start(MinecraftClone, system.currentSourcePath,
-        w=1024, h=768, title="Minecraft clone", doResize=true, vsync=false, doFullscreen=false)
+        w=1024, h=768, title="Minecraft clone", doResize=true, vsync=true, doFullscreen=false)
 

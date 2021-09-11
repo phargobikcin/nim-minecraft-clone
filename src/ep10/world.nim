@@ -86,34 +86,49 @@ proc draw*(self: World) =
     c.vao.unbind()
 
 ###############################################################################
+# create functions to make things a bit easier
 
-template get(self: Chunk, x, y, z: int): int =
-  self.blocks[x][y][z]
+
+template get(self: Chunk, pos: IVec3): int =
+  self.blocks[pos.x][pos.y][pos.z]
+
+
+template set(self: Chunk, pos: IVec3, blockNumber: int) =
+  self.blocks[pos.x][pos.y][pos.z] = blockNumber
+
+
+template getChunkPosition(self: World, pos: IVec3): IVec3 =
+  ivec3(math.floorDiv(pos.x, CHUNK_WIDTH),
+        math.floorDiv(pos.y, CHUNK_HEIGHT),
+        math.floorDiv(pos.z, CHUNK_LENGTH))
+
+template getLocalPosition(self: World, pos: IVec3): IVec3 =
+  ivec3(math.floorMod(pos.x, CHUNK_WIDTH),
+        math.floorMod(pos.y, CHUNK_HEIGHT),
+        math.floorMod(pos.z, CHUNK_LENGTH))
 
 proc getBlockNumber(self: World, pos: IVec3): int =
-
-  let chunkPos = ivec3(math.floorDiv(pos.x, CHUNK_WIDTH),
-                       math.floorDiv(pos.y, CHUNK_HEIGHT),
-                       math.floorDiv(pos.z, CHUNK_LENGTH))
+  let chunkPos = self.getChunkPosition(pos)
 
   if chunkPos notin self.chunks:
     return 0
 
   let
     chunk = self.chunks[chunkPos]
-    localX = math.floorMod(pos.x, CHUNK_WIDTH)
-    localY = math.floorMod(pos.y, CHUNK_HEIGHT)
-    localZ = math.floorMod(pos.z, CHUNK_LENGTH)
+    local = self.getLocalPosition(pos)
 
-  result = chunk.get(localX, localY, localZ)
+  return chunk.get(local)
 
-  # XXX hack alert!
-  # XXX this'll be fixed in a future episode
-  # get block type and check if it's transparent or not
-  # if it is, return 0 - else leave result unmodified
-  let blockType = self.blockManager.get(result)
-  if blockType == nil or blockType.model.transparent:
-    result = 0
+proc isOpaqueBlock(self: World, pos: IVec3): bool =
+  # get block type and check if it's opaque or not
+  # air counts as a transparent block, so test for that too
+
+  let blockNumber = self.getBlockNumber(pos)
+  let blockType = self.blockManager.get(blockNumber)
+  if blockType == nil:
+    return false
+
+  return not blockType.model.transparent
 
 
 iterator localXYZ(): tuple[x, y, z: int] {.inline.} =
@@ -134,7 +149,8 @@ proc updateMesh(self: Chunk, blockManager: BlockManager, world: World) =
   self.meshIndexCounter = 0
 
   for localX, localY, localZ in localXYZ():
-    let blockNumber = self.get(localX, localY, localZ)
+    let localPos = ivec3(localX, localY, localZ)
+    let blockNumber = self.get(localPos)
 
     # sky block?
     if blockNumber == 0:
@@ -157,8 +173,8 @@ proc updateMesh(self: Chunk, blockManager: BlockManager, world: World) =
       self.meshVertexPositions &= vertexPositions
 
       var indices = @[0.uint32, 1, 2, 0, 2, 3]
-      for i in 0..5:
-        indices[i] += self.meshIndexCounter.uint32
+      for ii in 0..5:
+        indices[ii] += self.meshIndexCounter.uint32
 
       # there are 4 unique indices, hence we increment that
       self.meshIndexCounter += 4
@@ -176,15 +192,14 @@ proc updateMesh(self: Chunk, blockManager: BlockManager, world: World) =
 
     # XXX this is slow...
     if blockType.model.isCube:
-      if world.getBlockNumber(pos + ivec3( 1,  0,  0)) == 0: addFace(0)
-      if world.getBlockNumber(pos + ivec3(-1,  0,  0)) == 0: addFace(1)
-      if world.getBlockNumber(pos + ivec3( 0,  1,  0)) == 0: addFace(2)
-      if world.getBlockNumber(pos + ivec3( 0, -1,  0)) == 0: addFace(3)
-      if world.getBlockNumber(pos + ivec3( 0,  0,  1)) == 0: addFace(4)
-      if world.getBlockNumber(pos + ivec3( 0,  0, -1)) == 0: addFace(5)
+      for ii, incr in [ivec3( 1,  0,  0), ivec3(-1,  0,  0), ivec3( 0,  1,  0),
+                      ivec3( 0, -1,  0), ivec3( 0,  0,  1), ivec3( 0,  0, -1)]:
+
+        if not world.isOpaqueBlock(pos + incr):
+          addFace(ii)
     else:
-      for i in 0..<blockType.numberFaces:
-        addFace(i)
+      for ii in 0..<blockType.numberFaces:
+        addFace(ii)
 
   # ok done looping... check we added anything
   self.hasMesh = self.meshIndexCounter > 0
@@ -202,6 +217,69 @@ proc updateVAO(self: Chunk) =
     self.vao.addBuffer(newVertexBuffer(self.meshShadingValues), EGL_FLOAT, 1)
     self.vao.attach(newIndexBuffer(self.meshIndices))
     self.vao.unbind()
+
+
+proc setBlock*(self: World, pos: IVec3, blockNum: int) =
+  let s0 = getTicks()
+
+  let chunkPosition = self.getChunkPosition(pos)
+
+  let found = chunkPosition in self.chunks
+
+  # no point in creating a whole new chunk if we're not gonna be adding anything
+  if not found and blockNum == 0:
+    return
+
+  let chunk =
+    if found:
+      self.chunks[chunkPosition]
+    else:
+      # if no chunks exist at this position, create a new one
+      let c = newChunk(chunkPosition)
+      self.chunks[c.chunkPosition] = c
+      c
+
+  let local = self.getLocalPosition(pos)
+  let oldBlockNum = chunk.get(local)
+
+  # no point updating mesh if the block is the same
+  if blockNum == oldBlockNum:
+    return
+
+  # can set now
+  chunk.set(local, blockNum)
+
+  chunk.updateMesh(self.blockManager, self)
+  chunk.updateVAO()
+
+  proc tryUpdateChunkAtPosition(relative: IVec3) =
+    let newChunkPos = chunkPosition + relative
+
+    if newChunkPos in self.chunks:
+      let cc = self.chunks[newChunkPos]
+
+      cc.updateMesh(self.blockManager, self)
+      cc.updateVAO()
+
+  if local.x == CHUNK_WIDTH - 1:
+    tryUpdateChunkAtPosition(ivec3(1, 0, 0))
+
+  elif local.x == 0:
+    tryUpdateChunkAtPosition(ivec3(-1, 0, 0))
+
+  if local.y == CHUNK_HEIGHT - 1:
+    tryUpdateChunkAtPosition(ivec3(0, 1, 0))
+  elif local.y == 0:
+    tryUpdateChunkAtPosition(ivec3(0, -1, 0))
+
+  if local.z == CHUNK_LENGTH - 1:
+    tryUpdateChunkAtPosition(ivec3(0, 0, 1))
+
+  elif local.z == 0:
+    tryUpdateChunkAtPosition(ivec3(0, 0, -1))
+
+  let s1 = getTicks()
+  l_critical(f"time taken to update chunk {s1-s0}")
 
 proc fixedWorld*(self: World) =
 
@@ -245,19 +323,24 @@ proc fixedWorld*(self: World) =
 
 proc randomWorld*(self: World) =
   let s0 = getTicks()
-  for x in -4..<4:
-    for z in -4..<4:
+  for x in -1..<1:
+    for z in -1..<1:
       let chunkPosition = ivec3(x, -1, z)
 
       let c = newChunk(chunkPosition)
       for i, j, k in localXYZ():
         c.blocks[i][j][k] =
+
+
           if j == 15:
-            random.sample([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 9, 10, 10, 12, 12, 11])
-          elif j > 12:
-            random.sample([0, 2, 6])
+            let cdf = [20.0, 2.0, 1.0].cumsummed
+            random.sample([0, 10, 11], cdf)
+          elif j == 14:
+            2 # grass
+          elif j > 10:
+            4 # dirt
           else:
-            random.sample([0, 0, 1, 4, 5])
+            5 # stone
 
       self.chunks[c.chunkPosition] = c
 

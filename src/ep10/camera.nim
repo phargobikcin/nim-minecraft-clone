@@ -16,7 +16,7 @@ type
 
     movementInput*: IVec3
 
-    position: Vec3
+    position*: Vec3
     rotation*: Vec2
 
 ###############################################################################
@@ -77,7 +77,8 @@ proc updatePerspective*(self: Camera, width, height: int) =
   let pMatrix = gamemaths.perspective(FOV, aspectRatio, 0.1, 500)
   self.program.setUniform(self.perLocation, pMatrix)
 
-  l_verbose(f"updated pMatrix with {width} x {height}")
+  # XXX lets dump this stuff on the screen with imgui
+  #l_verbose(f"updated pMatrix with {width} x {height}")
 
 proc updateView*(self: Camera) =
 
